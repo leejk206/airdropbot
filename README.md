@@ -4,9 +4,11 @@
 
 ## 상태
 
-- **현재 버전**: v0.5.0 (2026-05-20 태혁 피드백 1차 반영). 변경 노트: `docs/specs/2026-05-20-bot-feedback-v0.5.md`.
-- **봇 디스패치 경로 TBD** — BotFather 토큰 + handler 인프라는 별도 sprint. v0.5 routine 출력 보고 호출 패턴(on-demand vs daily push) 결정.
-- routine prompts (`prompts/airdrop_digest.md`, `prompts/airdrop_pin.md`)와 routine 데이터 (`sources.yaml`, `pinned.yaml`)는 dispatcher-agnostic하게 유지.
+- **현재 버전**: v0.6.0 (2026-05-20 봇 디스패치 인프라 도입).
+- **봇 디스패치**: cron + Claude Code subprocess + Telegram 채널 단방향 broadcast. spec: `docs/specs/2026-05-20-bot-dispatch-design.md`, plan: `docs/plans/2026-05-20-bot-dispatch-v1.md`.
+- **외부 셋업**: BotFather 토큰 + 채널 + cron 항목. `docs/DEPLOY.md` 참고.
+- **사용 모델**: 사용자가 채널 구독, daily 1회 자동 broadcast. /airdrop 명령 없음 (채널 단방향).
+- **pin 명령**: 소유자가 Claude CLI 자연어 입력 → `prompts/airdrop_pin.md` routine 트리거.
 
 ## 동작
 
