@@ -1,6 +1,6 @@
 [project]
 name = "airdropbot"
-version = "0.0.0"
+version = "0.5.0"
 description = "Airdrop digest Telegram bot. Routine prompts + curated sources/pinned data. Bot dispatcher TBD."
 requires-python = ">=3.12"
 dependencies = [

@@ -1,8 +1,11 @@
 # pinned.yaml — 사용자가 daily 적용한 에어드랍 항목 (frozen snapshot, plain text)
-# spec: docs/superpowers/specs/2026-05-09-pinned-daily-design.md
 # pin/unpin은 텔레그램 자연어로. 수동 편집도 허용.
 # snapshot_md는 Telegram plain text 포맷 (no markdown syntax, no number prefix,
-# no "왜 ROI 상위" field — 사용자가 명시 핀한 항목은 ROI 근거 불필요).
+# no 카테고리 태그, no 백킹/리서치 필드 — frozen 박제).
+# 핀 정규화 룰: prompts/airdrop_pin.md §6.
+#
+# 아래 기존 핀들의 `자본=없음` 인라인 필드는 v0.4 포맷 잔재 — 변형 금지 원칙으로
+# 그대로 유지된다. v0.5 정규화는 다음 add부터 적용.
 pins:
   - id: unicity-2026-05-09
     name: "Unicity"

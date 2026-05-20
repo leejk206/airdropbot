@@ -1,10 +1,11 @@
 # airdropbot
 
-`/airdrop` 텔레그램 슬래시 호출 시 큐레이트된 6개 웹 소스를 fetch해 ROI 상위 활동을 한국어 markdown으로 응답하는 on-demand routine. 사용자가 자연어로 핀한 항목은 출력 상단 `📌 Pinned` 섹션에 매일 노출 (`pinned.yaml` frozen snapshot, 만료 시 자동 정리).
+`/airdrop` 텔레그램 슬래시 호출 시 큐레이트된 6개 웹 소스를 fetch해 자본=없음 활동을 **마감 임박순** Top 10으로 응답하는 on-demand routine. 사용자가 자연어로 핀한 항목은 출력 상단 `📌 Pinned` 섹션에 매일 노출 (`pinned.yaml` frozen snapshot, 만료 시 자동 정리).
 
 ## 상태
 
-- 봇 디스패치 경로 **TBD** — 새 텔레그램 봇으로 연결 예정. spec 미정.
+- **현재 버전**: v0.5.0 (2026-05-20 태혁 피드백 1차 반영). 변경 노트: `docs/specs/2026-05-20-bot-feedback-v0.5.md`.
+- **봇 디스패치 경로 TBD** — BotFather 토큰 + handler 인프라는 별도 sprint. v0.5 routine 출력 보고 호출 패턴(on-demand vs daily push) 결정.
 - routine prompts (`prompts/airdrop_digest.md`, `prompts/airdrop_pin.md`)와 routine 데이터 (`sources.yaml`, `pinned.yaml`)는 dispatcher-agnostic하게 유지.
 
 ## 동작
@@ -14,11 +15,24 @@
 1. 사용자가 텔레그램 봇한테 `/airdrop` 입력
 2. routine 워크스페이스에서 Claude 가:
    - `sources.yaml` 로드 (큐레이트된 에어드롭 사이트 6개)
-   - 6개 URL을 `WebFetch` 병렬 호출 → 활동 후보 추출
-   - 사용자 프로필(자본 비쌈·시간 자유) 기반 ROI 가중
-   - dedupe → top 10 한국어 markdown 출력 (`prompts/airdrop_digest.md` 가이드 따름)
+   - 6개 URL을 `WebFetch` 병렬 호출 → 활동 후보 추출 (펀딩·VC·리서치 카운트 포함)
+   - 자본 deploy 요구 항목 hard exclude → 통과 항목에 `[비용없음]` `[딸각]` 태그 부착
+   - **마감 임박순** 정렬 + dedupe → top 10 한국어 plain text 출력
    - `pinned.yaml` 로드 → 만료 자동 정리 → 활성 핀의 snapshot을 출력 상단에 노출
 3. stdout이 텔레그램 응답으로 전달됨
+
+### 출력 row 포맷 (v0.5)
+
+```
+1. <프로젝트명> [비용없음][딸각] · <활동유형> · 시간=<...>
+   백킹: <VC1 · VC2> · 펀딩 $<X.XM>
+   리서치: <N>건                          (페이지에 명시된 경우만)
+   할 일: ...
+   마감: <YYYY-MM-DD 또는 미정>
+   출처: <URL>
+```
+
+자세한 포맷·필터·정렬 규칙은 `prompts/airdrop_digest.md` §3, §5.
 
 ### 핀 (pinned daily)
 
