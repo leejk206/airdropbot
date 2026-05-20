@@ -1,0 +1,22 @@
+# routine이 fetch할 큐레이트 에어드롭 소스 6개.
+# dappradar.com/rewards는 봇 차단(403)으로 v1에서 제외.
+# spec: docs/superpowers/specs/2026-05-08-web-source-roi-design.md §3
+sources:
+  - url: https://airdrops.io
+    role: primary
+    note: "OG, 카테고리 분류 잘 됨"
+  - url: https://icodrops.com
+    role: backing-data
+    note: "early stage + 펀딩 규모 prior"
+  - url: https://cryptorank.io/drophunting
+    role: backing-data
+    note: "데이터 풍부 but 일부 회원전용 — 공개분만 사용"
+  - url: https://airdropalert.com/farm
+    role: low-effort
+    note: "side quest 위주, 시간 적게 드는 활동"
+  - url: https://freeairdrop.io
+    role: catalog
+    note: "단순 리스트, 보조 cross-check 용도"
+  - url: https://coinmarketcap.com/airdrop
+    role: official
+    note: "공식 캠페인만, 활성 0개일 수 있음"

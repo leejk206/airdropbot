@@ -1,0 +1,39 @@
+# pinned.yaml — 사용자가 daily 적용한 에어드랍 항목 (frozen snapshot, plain text)
+# spec: docs/superpowers/specs/2026-05-09-pinned-daily-design.md
+# pin/unpin은 텔레그램 자연어로. 수동 편집도 허용.
+# snapshot_md는 Telegram plain text 포맷 (no markdown syntax, no number prefix,
+# no "왜 ROI 상위" field — 사용자가 명시 핀한 항목은 ROI 근거 불필요).
+pins:
+  - id: unicity-2026-05-09
+    name: "Unicity"
+    pinned_at: "2026-05-09T13:03:53+09:00"
+    expires_at: "2026-06-08T13:03:53+09:00"
+    expires_label: "default 30일"
+    source_url: "https://cryptorank.io/drophunting/unicity-activity1158"
+    snapshot_md: |
+      Unicity · quest · 자본=없음 · 시간=one-time (~20분)
+         할 일: cryptorank 활동 페이지의 quest 단계 (≈20분) 1회 완료.
+         마감: 미정 (Reward Date: TBA)
+         출처: https://cryptorank.io/drophunting/unicity-activity1158 · https://freeairdrop.io/airdrop/unicity.html
+  - id: dtelecom-2026-05-09
+    name: "dTelecom"
+    pinned_at: "2026-05-09T13:03:53+09:00"
+    expires_at: "2026-06-08T13:03:53+09:00"
+    expires_label: "default 30일"
+    source_url: "https://cryptorank.io/drophunting/dtelecom-activity1094"
+    snapshot_md: |
+      dTelecom · social · 자본=없음 · 시간=one-time (~35분)
+         할 일: deep link의 social task (팔로우·커넥트) 35분 안에 마무리.
+         마감: 미정 (Reward Date: TBA)
+         출처: https://cryptorank.io/drophunting/dtelecom-activity1094
+  - id: heyaura-2026-05-10
+    name: "heyAura"
+    pinned_at: "2026-05-10T16:24:13+09:00"
+    expires_at: "2026-06-09T16:24:13+09:00"
+    expires_label: "default 30일"
+    source_url: "https://freeairdrop.io/airdrop/heyaura.html"
+    snapshot_md: |
+      heyAura · quest · 자본=없음 · 시간=one-time
+         할 일: freeairdrop deep link 따라 quest 1회 완료.
+         마감: 미정
+         출처: https://freeairdrop.io/airdrop/heyaura.html
