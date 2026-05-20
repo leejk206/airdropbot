@@ -1,6 +1,6 @@
 [project]
 name = "airdropbot"
-version = "0.6.0"
+version = "0.7.0"
 description = "Airdrop digest Telegram bot — daily channel broadcast via cron + Claude Code subprocess."
 requires-python = ">=3.12"
 dependencies = [

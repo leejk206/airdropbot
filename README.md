@@ -4,7 +4,7 @@
 
 ## 상태
 
-- **현재 버전**: v0.6.0 (2026-05-20 봇 디스패치 인프라 도입).
+- **현재 버전**: v0.7.0 (2026-05-21 출력 포맷 compact + 별점 추천도). 직전 v0.6.0은 봇 디스패치 인프라 도입.
 - **봇 디스패치**: cron + Claude Code subprocess + Telegram 채널 단방향 broadcast. spec: `docs/specs/2026-05-20-bot-dispatch-design.md`, plan: `docs/plans/2026-05-20-bot-dispatch-v1.md`.
 - **외부 셋업**: BotFather 토큰 + 채널 + cron 항목. `docs/DEPLOY.md` 참고.
 - **사용 모델**: 사용자가 채널 구독, daily 1회 자동 broadcast. /airdrop 명령 없음 (채널 단방향).
@@ -23,18 +23,14 @@ cron이 매일 1회 routine 실행 → Telegram 채널에 broadcast (단방향, 
    - `pinned.yaml` 로드 → 만료 자동 정리 → 활성 핀의 snapshot을 출력 상단에 노출
 3. stdout이 `cache/latest-digest.md`에 저장 + Telegram Bot API `sendMessage`로 채널 broadcast
 
-### 출력 row 포맷
+### 출력 row 포맷 (v0.7)
 
 ```
-1. <프로젝트명> [비용없음][딸각] · <활동유형> · 시간=<...>
-   백킹: <VC1 · VC2> · 펀딩 $<X.XM>
-   리서치: <N>건                          (페이지에 명시된 경우만)
-   할 일: ...
-   마감: <YYYY-MM-DD 또는 미정>
-   출처: <URL>
+(링크 (<URL>)) <프로젝트명>(<티커>) - <할 일 한 줄>
+추천도: ★★★★★
 ```
 
-자세한 포맷·필터·정렬 규칙은 `prompts/airdrop_digest.md` §3, §5.
+정렬은 추천도(별점 5단계) 내림차순. 자세한 별점 산정·정렬·필터 규칙은 `prompts/airdrop_digest.md` §3, §5.
 
 ### 핀 (pinned daily)
 
