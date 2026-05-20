@@ -1,11 +1,7 @@
-"""Telegram sendMessage 래퍼 — split, retry, sequential post."""
+"""Telegram sendMessage 래퍼 — split 로직 (send/post는 Task 4-5에서 추가)."""
 from __future__ import annotations
 
-import os
-import time
 from typing import Final
-
-import requests
 
 TELEGRAM_LIMIT: Final[int] = 4096
 RETRY_DELAY_SEC: Final[float] = 60.0
