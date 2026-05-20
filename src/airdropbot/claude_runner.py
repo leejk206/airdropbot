@@ -35,12 +35,12 @@ def run_digest_routine(
         "--dangerously-skip-permissions",
         "--add-dir",
         str(workspace),
-        prompt_text,
     ]
     try:
         completed = subprocess.run(
             cmd,
             cwd=str(workspace),
+            input=prompt_text,
             capture_output=True,
             text=True,
             timeout=CLAUDE_TIMEOUT_SEC,
