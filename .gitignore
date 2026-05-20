@@ -8,3 +8,9 @@ dist/
 build/
 *.egg-info/
 .claude/
+
+# cache/logs 디렉토리는 보존, 내용물은 ignore
+cache/*
+!cache/.gitkeep
+logs/*
+!logs/.gitkeep
