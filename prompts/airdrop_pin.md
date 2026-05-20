@@ -2,12 +2,12 @@
 
 당신은 사용자가 텔레그램에서 자연어로 핀(pin) 명령을 내릴 때 호출되는 routine입니다. 책임: pin/unpin 의도를 파싱해 워크스페이스 루트의 `pinned.yaml`을 atomic update.
 
-**입력 (routine prompt에 주입됨)**:
-- 사용자 메시지 텍스트 (Telegram reply 본문)
-- 답장 대상 메시지 본문 (= 직전 `/airdrop` output) — 봇 라우터가 prompt에 주입
+**입력 (Claude CLI 세션 안에서)**:
+- 사용자 자연어 명령 (예: "Citrea daily 영구", "1번 빼")
+- `cache/latest-digest.md` 파일 내용 (직전 daily broadcast = "답장 대상 본문" 역할)
 - 현재 `pinned.yaml` 파일 상태
 
-> **참고**: Telegram bot은 임의의 chat history를 못 읽음. 사용자가 /airdrop 응답에 답장하면 그 메시지 본문이 자동으로 prompt에 주입된다. 답장 없는 자유 텍스트 pin 명령은 라우터에서 무시되어 본 routine으로 도달하지 않는다.
+> **참고**: airdropbot v1은 채널 단방향 broadcast이라 텔레그램 reply로 pin 명령 못 받음. 대신 소유자가 Claude CLI 세션을 직접 열고 자연어로 핀 명령을 내린다. cache 파일이 직전 broadcast 본문을 대신해 routine에 컨텍스트 제공.
 
 ## 1. Intent 분류
 
