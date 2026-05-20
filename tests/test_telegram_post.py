@@ -1,6 +1,10 @@
 """telegram_post.py 단위/통합 테스트."""
 from __future__ import annotations
 
+import pytest
+import requests
+from unittest.mock import patch
+
 from airdropbot.telegram_post import _split_message
 
 
@@ -44,3 +48,63 @@ def test_split_preserves_total_content():
     for ch in chunks:
         assert ch  # 빈 chunk 없음
     assert len(rejoined) >= len(text) - 10  # newline 누락 허용 (re-join 시 \n\n 추가)
+
+
+# ============ send/retry 테스트 (Task 4) ============
+
+
+class _FakeResp:
+    def __init__(self, status_code: int, text: str = ""):
+        self.status_code = status_code
+        self.text = text
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"{self.status_code}: {self.text}")
+
+
+def test_send_chunk_posts_to_telegram_api():
+    from airdropbot.telegram_post import _send_chunk
+
+    with patch("airdropbot.telegram_post.requests.post") as mock_post:
+        mock_post.return_value = _FakeResp(200, '{"ok":true}')
+        _send_chunk(token="T", chat_id="@x", text="hello")
+        mock_post.assert_called_once()
+        url = mock_post.call_args[0][0]
+        assert url == "https://api.telegram.org/botT/sendMessage"
+        json_arg = mock_post.call_args[1]["json"]
+        assert json_arg == {"chat_id": "@x", "text": "hello"}
+
+
+def test_send_chunk_retries_once_on_5xx_then_succeeds():
+    from airdropbot.telegram_post import _send_chunk
+
+    with patch("airdropbot.telegram_post.requests.post") as mock_post, \
+         patch("airdropbot.telegram_post.time.sleep") as mock_sleep:
+        mock_post.side_effect = [_FakeResp(503, "fail"), _FakeResp(200, "ok")]
+        _send_chunk(token="T", chat_id="@x", text="hello")
+        assert mock_post.call_count == 2
+        mock_sleep.assert_called_once_with(60.0)
+
+
+def test_send_chunk_raises_when_5xx_persists_after_retry():
+    from airdropbot.telegram_post import _send_chunk
+
+    with patch("airdropbot.telegram_post.requests.post") as mock_post, \
+         patch("airdropbot.telegram_post.time.sleep"):
+        mock_post.return_value = _FakeResp(503, "fail")
+        with pytest.raises(requests.HTTPError):
+            _send_chunk(token="T", chat_id="@x", text="hello")
+        assert mock_post.call_count == 2
+
+
+def test_send_chunk_does_not_retry_on_4xx():
+    from airdropbot.telegram_post import _send_chunk
+
+    with patch("airdropbot.telegram_post.requests.post") as mock_post, \
+         patch("airdropbot.telegram_post.time.sleep") as mock_sleep:
+        mock_post.return_value = _FakeResp(400, "bad")
+        with pytest.raises(requests.HTTPError):
+            _send_chunk(token="T", chat_id="@x", text="hello")
+        assert mock_post.call_count == 1
+        mock_sleep.assert_not_called()

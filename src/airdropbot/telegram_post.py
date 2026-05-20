@@ -1,7 +1,10 @@
-"""Telegram sendMessage 래퍼 — split 로직 (send/post는 Task 4-5에서 추가)."""
+"""Telegram sendMessage 래퍼 — split + send (post 오케스트레이션은 Task 5에서 추가)."""
 from __future__ import annotations
 
+import time
 from typing import Final
+
+import requests
 
 TELEGRAM_LIMIT: Final[int] = 4096
 RETRY_DELAY_SEC: Final[float] = 60.0
@@ -35,3 +38,15 @@ def _split_message(text: str, limit: int = TELEGRAM_LIMIT) -> list[str]:
 
     # 모든 sep 실패 — hard split
     return [text[i : i + limit] for i in range(0, len(text), limit)]
+
+
+def _send_chunk(token: str, chat_id: str, text: str) -> None:
+    """단일 chunk를 sendMessage POST. 5xx 1회 retry. 4xx 즉시 raise."""
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+
+    resp = requests.post(url, json=payload, timeout=30)
+    if 500 <= resp.status_code < 600:
+        time.sleep(RETRY_DELAY_SEC)
+        resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
