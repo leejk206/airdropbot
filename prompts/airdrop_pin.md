@@ -24,8 +24,8 @@ unknown이면 응답 후 종료:
 
 ### 번호 패턴 (`/^[0-9]+번?$/`)
 
-- **add**: prompt에 주입된 "답장 대상 메시지 본문(=직전 /airdrop output)"의 top 10 섹션에서 해당 번호 row 추출. 본문 미주입(또는 number out of range)이면 add 거부:
-  > ⚠️ /airdrop 응답에 답장(reply)으로 핀해주세요. 답장 없이 보낸 메시지는 처리되지 않습니다. (혹은 정확한 프로젝트 이름으로 알려주시면 됩니다.)
+- **add**: "답장 대상 메시지 본문"(= `cache/latest-digest.md`, 직전 daily broadcast)의 top 10 섹션에서 해당 번호 row 추출. cache 미존재(또는 number out of range)이면 add 거부:
+  > ⚠️ cache/latest-digest.md가 아직 없거나 해당 번호가 범위 밖입니다. 정확한 프로젝트 이름으로 알려주시면 됩니다.
 - **remove**: 현재 `pinned.yaml` 핀 리스트의 해당 번호 (출력 `## 📌 Pinned` 섹션 순서) 항목.
 
 ### 이름 ref
@@ -89,7 +89,7 @@ pins:
          출처: <...>
 ```
 
-> **중요 (snapshot 정규화 룰, v0.5)**: 답장 대상 본문(=직전 /airdrop output)의 row를 그대로 박제하지 말고 다음 룰로 정규화한다:
+> **중요 (snapshot 정규화 룰, v0.5)**: 답장 대상 본문(= `cache/latest-digest.md`, 직전 daily broadcast)의 row를 그대로 박제하지 말고 다음 룰로 정규화한다:
 >
 > 1. `## `, `### `, `**`, `---` 같은 markdown 문법 모두 제거 (Telegram에서 문자 그대로 보임).
 > 2. **번호 prefix 제거** — `1. `, `### 3. ` 등 항목 번호는 빼고 헤더는 `<프로젝트명> · ...`으로 시작.
