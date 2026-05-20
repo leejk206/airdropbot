@@ -1,6 +1,7 @@
-"""Telegram sendMessage 래퍼 — split + send (post 오케스트레이션은 Task 5에서 추가)."""
+"""Telegram sendMessage 래퍼 — split + send + post 오케스트레이션."""
 from __future__ import annotations
 
+import os
 import time
 from typing import Final
 
@@ -50,3 +51,19 @@ def _send_chunk(token: str, chat_id: str, text: str) -> None:
         time.sleep(RETRY_DELAY_SEC)
         resp = requests.post(url, json=payload, timeout=30)
     resp.raise_for_status()
+
+
+def post(text: str) -> None:
+    """Telegram 채널에 text post. 자동 split, chunk 사이 1초 delay."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHANNEL_ID")
+    if not token:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN env 미설정")
+    if not chat_id:
+        raise RuntimeError("TELEGRAM_CHANNEL_ID env 미설정")
+
+    chunks = _split_message(text)
+    for i, chunk in enumerate(chunks):
+        if i > 0:
+            time.sleep(CHUNK_DELAY_SEC)
+        _send_chunk(token=token, chat_id=chat_id, text=chunk)

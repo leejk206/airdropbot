@@ -5,7 +5,7 @@ import pytest
 import requests
 from unittest.mock import patch
 
-from airdropbot.telegram_post import _split_message
+from airdropbot.telegram_post import _split_message, post
 
 
 def test_split_short_text_returns_single_chunk():
@@ -108,3 +108,48 @@ def test_send_chunk_does_not_retry_on_4xx():
             _send_chunk(token="T", chat_id="@x", text="hello")
         assert mock_post.call_count == 1
         mock_sleep.assert_not_called()
+
+
+# ============ post() 오케스트레이션 테스트 (Task 5) ============
+
+
+def test_post_sends_single_chunk_when_short(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@x")
+    sent: list[str] = []
+
+    def fake_send(token, chat_id, text):
+        sent.append(text)
+
+    monkeypatch.setattr("airdropbot.telegram_post._send_chunk", fake_send)
+    post("짧은 메시지")
+    assert sent == ["짧은 메시지"]
+
+
+def test_post_splits_and_delays_when_long(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@x")
+    sent: list[str] = []
+    sleeps: list[float] = []
+
+    def fake_send(token, chat_id, text):
+        sent.append(text)
+
+    def fake_sleep(sec):
+        sleeps.append(sec)
+
+    monkeypatch.setattr("airdropbot.telegram_post._send_chunk", fake_send)
+    monkeypatch.setattr("airdropbot.telegram_post.time.sleep", fake_sleep)
+
+    long_text = ("A" * 3000) + "\n\n" + ("B" * 2000)
+    post(long_text)
+    assert len(sent) == 2
+    # chunk 사이 1초 delay
+    assert sleeps == [1.0]
+
+
+def test_post_raises_when_env_missing(monkeypatch):
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("TELEGRAM_CHANNEL_ID", raising=False)
+    with pytest.raises(RuntimeError, match="TELEGRAM_BOT_TOKEN"):
+        post("x")
