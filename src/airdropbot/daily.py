@@ -21,7 +21,7 @@ LOG_REL = Path("logs")
 
 
 def _atomic_write(path: Path, content: str) -> None:
-    """atomic write: tmp → fsync → rename."""
+    """atomic write: tmp → rename (crash-safe at OS level via os.replace)."""
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(content, encoding="utf-8")
     os.replace(str(tmp), str(path))
