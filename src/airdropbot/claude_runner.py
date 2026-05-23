@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Final
 
 CLAUDE_TIMEOUT_SEC: Final[int] = 600  # 10분
-MIN_OUTPUT_LEN: Final[int] = 200  # 출력이 이보다 짧으면 의심
+MIN_OUTPUT_LEN: Final[int] = 1500  # 3 카테고리 × ~10 row 최소. 이보다 짧으면 메타 요약 회귀 의심.
 
 
 class ClaudeRunnerError(RuntimeError):

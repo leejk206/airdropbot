@@ -1,4 +1,4 @@
-# airdrop-pin routine prompt (v0.7.0)
+# airdrop-pin routine prompt (v0.9.0)
 
 당신은 사용자가 텔레그램에서 자연어로 핀(pin) 명령을 내릴 때 호출되는 routine입니다. 책임: pin/unpin 의도를 파싱해 워크스페이스 루트의 `pinned.yaml`을 atomic update.
 
@@ -82,16 +82,28 @@ pins:
     expires_at: "<ISO 8601 또는 null>"
     expires_label: "<사용자 입력 원문>"
     source_url: "<row의 출처 URL>"
+    official_url: "<row의 공식 URL 또는 null>"
     snapshot_md: |
-      (링크 (<source_url>)) <프로젝트명>(<티커>) - <할 일 한 줄>
+      <a href="<공식_URL>">링크</a> · <a href="<출처_URL>">출처</a> — <프로젝트명>(<티커>) - <할 일 한 줄>
 ```
 
-> **중요 (snapshot 정규화 룰, v0.7)**: 답장 대상 본문(= `cache/latest-digest.md`, 직전 daily broadcast)의 row를 그대로 박제하지 말고 다음 룰로 정규화한다:
+공식 URL이 없는 경우(직전 broadcast row가 fallback 형태였던 경우) snapshot_md는 출처 단독:
+
+```yaml
+    official_url: null
+    snapshot_md: |
+      <a href="<출처_URL>">출처</a> — <프로젝트명>(<티커>) - <할 일 한 줄>
+```
+
+> **중요 (snapshot 정규화 룰, v0.9)**: 답장 대상 본문(= `cache/latest-digest.md`, 직전 daily broadcast)의 row를 그대로 박제하지 말고 다음 룰로 정규화한다:
 >
 > 1. `## `, `### `, `**`, `---` 같은 markdown 문법 모두 제거 (Telegram에서 문자 그대로 보임).
-> 2. **추천도 라인 제거** — 시간 지나면 stale. 핀에는 `(링크 (URL)) 프로젝트명(티커) - 할 일` 한 줄만 박제.
+> 2. **추천도 라인 제거** — 시간 지나면 stale. 핀에는 `<a href...>링크</a> · <a href...>출처</a> — 프로젝트명(티커) - 할 일` 한 줄만 박제.
 > 3. **티커 미정 시** `(티커 미정)` 명시. broadcast row에 적힌 그대로 가져옴.
-> 4. 들여쓰기·구분자 형식은 `prompts/airdrop_digest.md` §5 v0.7 포맷과 동일.
+> 4. **링크 URL 추출 (v0.9)**: broadcast row에서 `<a href="...">링크</a>` 태그가 있으면 그 href를 `official_url`에 저장. 없으면 (fallback 형태였으면) `official_url: null` + snapshot_md도 출처 단독.
+> 5. 들여쓰기·구분자 형식은 `prompts/airdrop_digest.md` §5.1 v0.9 포맷과 동일.
+> 6. **HTML 이스케이프**: 텍스트 영역의 `&` `<` `>`는 broadcast에서 이미 이스케이프된 상태로 박제 (broadcast row 그대로 복사하면 자동 만족).
+> 7. **태그 미부착 (v0.9)**: broadcast row의 `[딸깍][자본X]` 태그는 snapshot_md에 박제하지 않는다. 시간 지나면 태그 정확도(특히 [딸깍]의 시간 추정) 떨어지므로 추천도와 동일하게 핀에는 미포함.
 
 기존 `pins:` 리스트 끝에 push.
 
