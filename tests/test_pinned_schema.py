@@ -15,7 +15,7 @@ PINNED_PATH = Path(__file__).resolve().parent.parent / "pinned.yaml"
 ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
 ID_MAX_LEN = 64
 REQUIRED = {"id", "name", "pinned_at", "expires_at", "source_url", "snapshot_md"}
-OPTIONAL = {"expires_label"}
+OPTIONAL = {"expires_label", "activity_url", "official_url", "auto_pinned", "tge_date"}
 
 
 def _load() -> dict:

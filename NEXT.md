@@ -1,22 +1,24 @@
 # NEXT — airdropbot 작업 포인터
 
-**마지막 갱신**: 2026-05-23 KST
+**마지막 갱신**: 2026-05-25 KST
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `909c804` (master, origin과 동기화) — v0.9 변경분 미커밋 staged.
+**현재 HEAD**: `f7fa79b` (master, origin과 동기화) — v0.10 변경분 미커밋 staged.
 
 다음 세션 시작 시 이 파일 + `docs/specs/`의 최신 spec 노트 + `prompts/*.md`만 보면 컨텍스트 복원 가능.
 
 ---
 
-## 1. 현재 상태 (v0.9.0, staged 미커밋)
+## 1. 현재 상태 (v0.11.0, staged 미커밋)
 
-### 구현 완료 (v0.7 → v0.9 누적)
-- **routine prompts**: `prompts/airdrop_digest.md` (v0.9.0), `prompts/airdrop_pin.md` (v0.9.0).
+### 구현 완료 (v0.7 → v0.11 누적)
+- **routine prompts**: `prompts/airdrop_digest.md` (v0.11.0), `prompts/airdrop_pin.md` (v0.11.0).
 - **routine 데이터**: `sources.yaml` (6 URL), `pinned.yaml` (`pins: []`).
 - **봇 디스패치 인프라**: `src/airdropbot/{daily,claude_runner,telegram_post}.py`. cron-driven. `MIN_OUTPUT_LEN=1500` (v0.9.1).
 - **테스트**: 46/46 PASS (yaml schema 14 + telegram_post 24 + claude_runner 4 + daily 4). ruff clean.
-- **v0.8 (이번 세션 전반)**: HTML parse_mode + `<a>` hyperlink + 2-pass detail enrichment + airdrops.io `/visit/<코드>/` 채택 룰. 활동 URL 추출 4/10 → 8/10.
-- **v0.9 (이번 세션 후반)**: 3 카테고리 × Top 10 (종합/딸깍/자본X) + `===CATEGORY_SPLIT===` separator + 양성 태그 + 자본 deploy hard exclude 해제 (-1별 경감 대체) + 라벨 "공식"→"링크". smoke test 4/4 PASS.
+- **v0.8**: HTML parse_mode + `<a>` hyperlink + 2-pass detail enrichment + airdrops.io `/visit/<코드>/` 채택 룰. 활동 URL 추출 4/10 → 8/10.
+- **v0.9**: 3 카테고리 × Top 10 (종합/딸깍/자본X) + `===CATEGORY_SPLIT===` separator + 양성 태그 + 자본 deploy hard exclude 해제 (-1별 경감 대체) + 라벨 "공식"→"링크". smoke test 4/4 PASS.
+- **v0.10**: 프로젝트명에 **공식 링크 hyperlink** 추가 (홈 > X fallback, Discord 제외). §4.5 detail enrichment를 `activity_url` + `official_url` 두 갈래 추출로 확장. row 포맷 4종 케이스. smoke test PASS (cache 6067자, `<a>` 짝 82=82, 케이스 A 22 + 케이스 C 8).
+- **v0.11 (이번 세션 후반)**: **별점 룰 ROI 기반 전면 rewrite** (분자/분모 가중치 합산 → 점수 매핑) + **자동 pin 시스템 신설** (별점 ★★★ 이상 항목 broadcast 직후 pinned.yaml에 upsert, 만료 TGE 또는 60일 default, cap 없음). 종합 prefix에 📌 수동 + 👀 자동 통합 노출. pinned.yaml 스키마에 `auto_pinned`, `tge_date` 필드 추가. -1별 경감 폐기. invisible drop 방지 목적.
 
 ### 운영 상태
 - **cron 미등록** — 사용자 manual step (`docs/DEPLOY.md` §5) 미진행.
@@ -24,30 +26,29 @@
 - **routine 평균 시간**: ~7분 (v0.8 ~5분 → v0.9 detail enrichment 대상 union 확대로 증가).
 
 ### 직전 commit 흐름 (최근 → 과거)
-1. `909c804` docs: NEXT.md 작업 포인터
-2. `f8d39f9` v0.7.0: 출력 포맷 compact + 추천도 별점
-3. `9790fb7` fix(claude_runner): prompt stdin 전달
-4. `b371bd1` polish: _atomic_write docstring + README v0.6 갱신
-5. `f96af55` ... (v0.6 시리즈)
+1. `f7fa79b` v0.8 + v0.9: HTML 링크 + 3 카테고리 × Top 10 + 자본 deploy ranking
+2. `909c804` docs: NEXT.md 작업 포인터
+3. `f8d39f9` v0.7.0: 출력 포맷 compact + 추천도 별점
+4. `9790fb7` fix(claude_runner): prompt stdin 전달
+5. `b371bd1` polish: _atomic_write docstring + README v0.6 갱신
 
-### 미커밋 staged (v0.8 + v0.9 묶음)
-- `prompts/airdrop_digest.md` (v0.7 → v0.9 대규모 rewrite)
-- `prompts/airdrop_pin.md` (v0.7 → v0.9)
-- `src/airdropbot/telegram_post.py` (HTML parse_mode + 400 fallback + separator split)
-- `src/airdropbot/claude_runner.py` (MIN_OUTPUT_LEN 200 → 1500)
-- `tests/test_telegram_post.py` (12 → 24)
-- `tests/test_claude_runner.py` (출력 길이 fixture 조정)
-- 신규: `docs/specs/2026-05-22-v0.8-html-links.md`, `docs/specs/2026-05-23-v0.9-three-categories.md`, `docs/plans/2026-05-23-v0.9-three-categories.md`
+### 미커밋 staged (v0.10 + v0.11 묶음)
+- `prompts/airdrop_digest.md` (v0.9.0 → v0.11.0): v0.10 변경(§4.5/§5.4/§5.5/§5.8 + 헤더) + v0.11 변경 (§3.2 ROI 별점 룰 전면 rewrite, §3.3 raw 점수 tie-breaker, §4 -1별 폐기, §0 자동 pin 만료 인지, §5.3 prefix 📌+👀 통합, §5.7 dedupe 룰 확장, §5.9 첫 글자 룰 갱신, §7 자동 pin upsert 신설, 헤더 v0.11).
+- `prompts/airdrop_pin.md` (v0.9.0 → v0.11.0): v0.10 변경(§6 snapshot 4종 케이스 + activity_url/official_url 메타) + v0.11 변경(§4 자동 → 수동 승격 룰, §6 yaml 형식에 auto_pinned/tge_date 추가, §remove에 자동 pin 명시 제거 룰, 헤더 v0.11).
+- `tests/test_pinned_schema.py`: OPTIONAL에 `activity_url`, `official_url`, `auto_pinned`, `tge_date` 추가.
+- 신규: `~/.claude/plans/2026-05-25-airdropbot-v0.10-project-name-link.md`, `~/.claude/plans/2026-05-25-v0.11-roi-autopin.md` (작업 계획서, 워크스페이스 외부).
 
 ---
 
 ## 2. 다음 액션 후보
 
 ### 단기
-- **사용자가 v0.9 commit 승인** → 통합 commit 1개로 master에 push.
+- **사용자가 v0.10 + v0.11 commit 승인** → 통합 commit 1-2개로 master에 push.
+- **v0.11 smoke test 1회** — 실 broadcast 1회 돌려 (a) ROI 별점 분포 (b) 자동 pin upsert 동작 (pinned.yaml에 처음으로 데이터 들어감) (c) 만료 분기 (TGE 명시 vs TBA) (d) 종합 prefix `👀 Watchlist` 노출 확인.
+- **자동 pin cumulative growth 관찰** — 매일 1-3개씩 추가되어 60일까지 누적 가능. 운영 며칠 후 활성 자동 pin 수 모니터링, 너무 많으면 v0.11.1로 cap 도입 검토.
 - **태그 boundary 케이스 관찰** — Spicenet/DogeOS/Unicity 같이 "퀘스트 진행" 활동에 [딸깍] 부착이 매일 보수적인지 운영하며 봐야.
-- **별점 분포 튜닝** — 현재 보수적(★★★ 이상 1-2개). v0.9 자본 -1별 경감 후에도 ★★★ 위로 잘 안 올라옴. 시그널 가중치 조정 검토.
-- **routine 시간 단축** — ~7분이 길면 detail enrichment 대상 unique 셋을 ≤20개로 cap.
+- **routine 시간 단축** — ~7-8분 (v0.10 smoke 기준)이 길면 detail enrichment 대상 unique 셋을 ≤20개로 cap.
+- **load_dotenv 도입 검토** — daily.py가 .env 자동 로드 안 함. cron 운영 시 entry에 `set -a; source .env` 넣거나, python-dotenv 추가 (PROFILE.md 정책상 추가 결정은 사용자 명시 후).
 
 ### 중기
 - **multi-channel broadcast** — 본인 DM → BAY/공개 채널 확장. 토큰·채널 핸들 교체.
