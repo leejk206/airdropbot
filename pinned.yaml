@@ -2,4 +2,53 @@
 # pin/unpin은 사용자가 Claude CLI 세션에 자연어로 입력 → prompts/airdrop_pin.md routine이 처리.
 # pin routine은 직전 broadcast(cache/latest-digest.md)를 "답장 대상 본문"으로 참조.
 # snapshot_md 정규화 룰: prompts/airdrop_pin.md §6.
-pins: []
+# v0.11(2026-05-25)부터 자동 pin도 함께 누적 — digest routine §7이 ★★★ 이상 항목 auto-upsert.
+pins:
+  - id: sui
+    name: "Sui"
+    pinned_at: "2026-05-25T18:00:00+09:00"
+    expires_at: "2026-07-24T23:59:59+09:00"
+    expires_label: "auto 60일 TBA"
+    source_url: "https://cryptorank.io/drophunting/sui-activity220"
+    activity_url: "https://devnet.hashi.sui.io/"
+    official_url: "https://sui.io/"
+    auto_pinned: true
+    tge_date: null
+    snapshot_md: |
+      <a href="https://devnet.hashi.sui.io/">링크</a> · <a href="https://cryptorank.io/drophunting/sui-activity220">출처</a> — <a href="https://sui.io/">Sui(SUI)</a> - Hashi devnet 활동 참여 (whitelist 가입)
+  - id: solstice
+    name: "Solstice"
+    pinned_at: "2026-05-25T18:00:00+09:00"
+    expires_at: "2026-07-24T23:59:59+09:00"
+    expires_label: "auto 60일 TBA"
+    source_url: "https://icodrops.com/solstice/"
+    activity_url: null
+    official_url: "https://solstice.finance/"
+    auto_pinned: true
+    tge_date: null
+    snapshot_md: |
+      <a href="https://icodrops.com/solstice/">출처</a> — <a href="https://solstice.finance/">Solstice(티커 미정)</a> - Binance Alpha airdrop 청구 (~2시간 내 마감)
+  - id: citrea
+    name: "Citrea"
+    pinned_at: "2026-05-25T18:00:00+09:00"
+    expires_at: "2026-07-24T23:59:59+09:00"
+    expires_label: "auto 60일 TBA"
+    source_url: "https://icodrops.com/citrea/"
+    activity_url: null
+    official_url: "https://citrea.xyz/"
+    auto_pinned: true
+    tge_date: null
+    snapshot_md: |
+      <a href="https://icodrops.com/citrea/">출처</a> — <a href="https://citrea.xyz/">Citrea(티커 미정)</a> - Binance Alpha airdrop 청구 (~26시간 내 마감)
+  - id: konnex
+    name: "Konnex"
+    pinned_at: "2026-05-25T18:00:00+09:00"
+    expires_at: "2026-07-24T23:59:59+09:00"
+    expires_label: "auto 60일 TBA"
+    source_url: "https://cryptorank.io/drophunting/konnex-activity1071"
+    activity_url: "https://hub.konnex.world/points?referral_code=3F6J6J3N"
+    official_url: "https://konnex.world/"
+    auto_pinned: true
+    tge_date: null
+    snapshot_md: |
+      <a href="https://hub.konnex.world/points?referral_code=3F6J6J3N">링크</a> · <a href="https://cryptorank.io/drophunting/konnex-activity1071">출처</a> — <a href="https://konnex.world/">Konnex(티커 미정)</a> - hub.konnex.world points 캠페인 (~18분, social)
