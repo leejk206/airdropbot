@@ -1,6 +1,6 @@
 recipes:
 - project: Polymarket
-  recipe_hash: sha256:695bd27f7040fa377dd3a1c8a729223fe8922c77e76c975695bd1a5fa3ff4bd0
+  recipe_hash: sha256:3497a210cbfc07aa73757cb3dfb983f46f71f20a443cac6421c693425b3d9a9e
   entry_url: https://polymarket.com/
   chain: Polygon
   signature_kind: approve
@@ -10,111 +10,114 @@ recipes:
   - action: goto
     target: https://polymarket.com/
   - action: click
-    target: Sign Up button in the top-right header
+    target: Sign Up button in top-right header
   - action: fill
-    target: email address (or choose Google / wallet login)
+    target: Email address field (or choose Google / wallet login)
   - action: wait
-    target: email verification code / OAuth redirect to complete
+    target: Email verification code / magic link confirmation
   - action: wallet_connect
-    target: connect or provision the embedded Polygon wallet (Magic/proxy wallet)
-      for the account
-  - action: click
-    target: Deposit button
-  - action: fill
-    target: USDC deposit amount and bridge/transfer from an external wallet or card
-      on-ramp
-  - action: wallet_approve
-    target: USDC ERC-20 approval to the Polymarket CTF Exchange / Conditional Tokens
-      contracts on Polygon
-  - action: wait
-    target: deposit to be confirmed and USDC balance to appear in the account
-  - action: click
-    target: a market card on the homepage (e.g. 'Fed Decision in July?')
-  - action: click
-    target: Yes or No outcome share button
-  - action: fill
-    target: order amount in USDC in the trade panel
-  - action: click
-    target: Buy / Place order button
+    target: Connect wallet modal (MetaMask / WalletConnect / embedded Magic wallet)
+      on Polygon
   - action: wallet_sign
-    target: EIP-712 order signature for the CLOB order
-  - action: wait
-    target: order fill confirmation and position to appear in Portfolio
+    target: Sign-in authentication message to link wallet to Polymarket account
   - action: click
-    target: Rewards link in the footer to review liquidity-reward / activity eligibility
-  - action: goto
-    target: https://polymarket.com/portfolio
+    target: Deposit button in header
+  - action: fill
+    target: USDC deposit amount (bridge/transfer USDC.e to the Polygon deposit address)
   - action: wait
-    target: repeat trading over time to accumulate volume/activity that a future airdrop
-      may credit
+    target: Deposit confirmation on Polygon and balance update
+  - action: click
+    target: A market card from the homepage (e.g. 'Fed Decision in July?')
+  - action: click
+    target: Yes or No outcome button on the market page
+  - action: fill
+    target: Share amount / USDC size input in the order panel
+  - action: wallet_approve
+    target: USDC + Conditional Tokens allowance for CTF Exchange contract (unlimited
+      approval prompt)
+  - action: wallet_sign
+    target: EIP-712 order signature to submit the trade to the CLOB
+  - action: wait
+    target: Order fill confirmation and position appearing in Portfolio
+  - action: click
+    target: Profile menu > Portfolio / Activity to verify trade volume is recorded
+  - action: click
+    target: Rewards link in footer to check liquidity-reward and points eligibility
   automatable: manual
   blockers:
-  - Airdrop is speculative — no official points/XP program or claim page is exposed
-    on the landing page; rewards are inferred from trading activity only
-  - Account creation requires email/Google/wallet login with likely CAPTCHA and email
+  - No official airdrop or token program announced; points/rewards accrual is speculative
+  - Account signup requires email/OAuth (Google/Magic Link) or wallet, often with
+    email verification
+  - Geographic restrictions — US and several other jurisdictions are blocked on the
+    international platform; Polymarket US (QCX LLC) is a separate CFTC-regulated entity
+    with KYC
+  - Deposit requires bridging/onramping USDC to Polygon, or fiat onramp with identity
     verification
-  - 'Geo-restrictions: US users are routed to the CFTC-regulated Polymarket US entity;
-    the international platform blocks several jurisdictions via IP/geoblock and ToS'
-  - KYC/identity verification required for deposits and withdrawals on regulated entity
-  - Real capital at risk — trading prediction markets can lose the deposited funds
-  - USDC deposit bridge to Polygon plus one-time USDC approval to the CTF exchange
-    contracts
-  - Automated trading is possible via the CLOB API, but requires API key derivation
-    and is not equivalent to the UI activity being measured
-  reconned_at: '2026-07-29T11:22:46Z'
+  - Trading requires USDC allowance approvals to the CTF Exchange / conditional tokens
+    contracts (typically unlimited approval)
+  - Cloudflare/bot protection and captcha on signup and login flows
+  - Real capital at risk — outcomes are financial bets that can lose value
+  - Terms of Use prohibit automated/bot access to the UI; only the documented CLOB
+    API is sanctioned
+  reconned_at: '2026-07-29T11:49:54Z'
   verdict: null
 - project: 3DOS
-  recipe_hash: sha256:a1a368bff404e90ae610da31b26f0f380dfa17ebffc20ca589493032309f9790
+  recipe_hash: sha256:24b332d8948748fbee5484e40175abed9ac2a4579083379038fb87e99319f278
   entry_url: https://3dos.io/
   chain: null
-  signature_kind: approve
+  signature_kind: none
   approve_unlimited: false
   capital_required_usd: 0.0
   steps:
   - action: goto
     target: https://3dos.io/
   - action: click
-    target: Enter Now (marketplace entry) or Login link in the top nav
+    target: Login / Enter Now button in the top navigation
+  - action: goto
+    target: https://dashboard.3dos.io/register?ref=<REFERRAL_CODE>
   - action: fill
-    target: 'Registration form: email, password (use referral link if available)'
+    target: 'Registration form: full name, email address, password, confirm password'
+  - action: click
+    target: Terms & Conditions checkbox
+  - action: click
+    target: Sign Up / Create Account button
   - action: wait
-    target: Email verification message; confirm account via emailed link
+    target: Verification email delivery, then open the confirmation link in the inbox
+  - action: goto
+    target: https://dashboard.3dos.io/login
+  - action: fill
+    target: 'Login form: email and password'
   - action: click
-    target: Login / submit credentials on 3DOS dashboard
-  - action: wallet_connect
-    target: Connect wallet button in dashboard/profile settings (if offered for airdrop
-      eligibility)
-  - action: wallet_sign
-    target: Sign-in / wallet-linking message signature request
+    target: Login button
   - action: click
-    target: Daily task button in dashboard (e.g. Generate API Key / daily claim) to
-      accrue points
+    target: 'Dashboard sidebar: Free Points / Daily Points page'
+  - action: click
+    target: Generate Point (daily claim) button
   - action: wait
-    target: Points balance updates in dashboard
+    target: Confirmation toast that daily points were credited
   - action: click
-    target: Repeat the daily task each day for the duration of the points campaign
-  - action: wallet_approve
-    target: Any on-chain claim/approval transaction presented at token distribution
-      time
+    target: 'Referral page: Copy referral link, then share it to accrue referral points'
+  - action: wait
+    target: 24 hours, then repeat the Generate Point daily claim
   automatable: partial
   blockers:
-  - No official airdrop/points page is linked from the landing page; the point-earning
-    dashboard sits behind the 'Enter Now'/'Login' flow and could not be inspected
-  - Account registration with email verification is required, which breaks unattended
-    automation
-  - Likely bot protection (captcha/Cloudflare) on register and login
-  - Points accrue from repeated daily actions in the dashboard, so a single run is
-    not sufficient
-  - Full reward tier ('Connect your 3D Printer') requires physical 3D printer hardware
-    and manual contact-form onboarding
-  - Wallet linking / claim signature requirements and target chain are not disclosed
-    on the public page
-  reconned_at: '2026-07-29T11:22:46Z'
+  - Account creation requires email + password and email verification link (external
+    inbox access needed)
+  - Registration is referral-gated in practice; a referral code/link is required to
+    get full point credit
+  - Daily point generation must be repeated once per 24h, so a persistent scheduler
+    and session/cookie storage are required
+  - Possible CAPTCHA / bot protection on signup and login
+  - Higher tiers of the DePIN program require connecting a physical 3D printer, which
+    cannot be automated
+  - No wallet connect flow is exposed on the landing page; a wallet link step may
+    be added later for the token claim
+  reconned_at: '2026-07-29T11:49:54Z'
   verdict: null
 - project: AIW3
-  recipe_hash: sha256:902add12c662476cda74d7b016bfa13dd35a56e30e7326e4e40f2ad307b6e6af
+  recipe_hash: sha256:ac254dca2be85f623f39cd9ca923ac3e0a6a32b7f2a3beaf0f4505780b42ddd0
   entry_url: https://aiw3.ai/
-  chain: Solana
+  chain: null
   signature_kind: message
   approve_unlimited: false
   capital_required_usd: 0.0
@@ -122,54 +125,56 @@ recipes:
   - action: goto
     target: https://aiw3.ai/
   - action: click
-    target: Claim Airdrop button (hero section)
+    target: Claim Airdrop button (hero CTA)
   - action: wait
-    target: Airdrop / app page load
+    target: Airdrop / Launch App dashboard to load
   - action: wallet_connect
-    target: Connect Wallet (Phantom / Solana wallet)
+    target: Connect Wallet button in app header
   - action: wallet_sign
-    target: Sign-in message to authenticate wallet ownership
-  - action: fill
-    target: Referral / invite code field (if prompted)
-  - action: click
-    target: Register / Sign up confirm button
+    target: Login / authentication message signature request
   - action: wait
-    target: Airdrop task dashboard load
+    target: account registration and task dashboard to load
+  - action: fill
+    target: referral or invite code input (if prompted)
   - action: click
-    target: Daily check-in task
+    target: Tasks / Airdrop tab
   - action: click
-    target: Social task — Follow AIW3 on X
+    target: Daily check-in task 'Claim' button
   - action: click
-    target: Social task — Join Discord/Telegram
+    target: Social task entries (follow X, join Telegram/Discord) — opens external
+      sites
+  - action: wait
+    target: external social authorization to complete
   - action: click
     target: Verify button for each completed social task
   - action: click
-    target: Trading / strategy task entry (CopyTrade or Trade)
-  - action: wallet_approve
-    target: Token approval or deposit transaction for trading task
+    target: Create API Key (for trading/strategy tasks)
+  - action: fill
+    target: exchange API key and secret fields
   - action: click
-    target: Complete trade / follow strategy confirm
+    target: Trading / strategy task entries and complete required actions
   - action: wait
-    target: Points balance update
+    target: points to accrue and reach redemption threshold
   - action: click
-    target: Claim / redeem airdrop button once points threshold reached
-  - action: wallet_sign
-    target: Claim confirmation signature
+    target: Redeem / Claim airdrop button after TGE
+  - action: wallet_approve
+    target: claim transaction confirmation in wallet
   automatable: partial
   blockers:
-  - No dedicated airdrop URL published; 'Claim Airdrop' / 'Launch App' routes to an
-    app subdomain not visible from the landing page
-  - Social tasks (X/Twitter follow, retweet, Discord/Telegram join) require third-party
-    OAuth and manual human interaction
-  - Daily tasks require repeated logins across multiple days until TGE
-  - Trading tasks require depositing capital and/or connecting a CEX API key, amount
-    not disclosed on the page
-  - API key creation for AIW3claw skills requires manual account setup and local secret
-    storage
-  - Points threshold for airdrop eligibility is undisclosed
-  - Possible invite/referral code gating and anti-bot checks (CAPTCHA) on registration
-  - TGE countdown (Aug 3) implies a hard deadline for task completion
-  reconned_at: '2026-07-29T11:22:46Z'
+  - Landing page only exposes marketing copy and a 'Claim Airdrop' CTA; the actual
+    task list lives behind the Launch App / Airdrop dashboard and is not visible without
+    connecting a wallet
+  - Task set is heterogeneous (social follow/retweet, daily check-in, invite friends,
+    Academy courses, strategy creation, trading rebates) — social tasks require external
+    OAuth on X/Discord/Telegram and are not automatable
+  - Trading tasks require exchange API keys (AIW3 API key creation) and real trading
+    volume, implying capital beyond zero for the full task set
+  - Chain not stated on the page; TGE and claim contract network unconfirmed
+  - Wallet signature type unverified — connect flow likely requires an off-chain SIWE-style
+    message, and the eventual token claim would require an on-chain transaction
+  - Points thresholds gate the airdrop redemption; eligibility not guaranteed by simply
+    registering
+  reconned_at: '2026-07-29T11:49:54Z'
   verdict: null
 - project: Aligned
   recipe_hash: sha256:0e363178f062a934145036493e49d9cc0ed863bf41c20eaa7989532759961615
@@ -251,4 +256,96 @@ recipes:
   - 온체인 바스켓 할당(Allocation) 태스크를 수행하려면 실제 자금과 ERC20 approve 트랜잭션이 필요 (가스비 포함)
   - 포인트 적립 조건·스냅샷 기준이 페이지에 공개되어 있지 않음
   reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
+- project: AIW3
+  recipe_hash: sha256:4be0c4a0a361dede6535ed8a862a3bc042f71e240ca501c7c41e488bec8d187d
+  entry_url: https://aiw3.ai/airdrop
+  chain: null
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://aiw3.ai/airdrop
+  - action: click
+    target: Connect Wallet / 'Check Eligibility' button
+  - action: wallet_connect
+    target: wallet provider modal (browser wallet)
+  - action: wallet_approve
+    target: site connection / eligibility verification prompt in wallet
+  - action: wait
+    target: eligibility result panel to load
+  - action: click
+    target: Check in (Daily check-in rewards, +3 pts)
+  - action: wait
+    target: check-in confirmation toast
+  - action: click
+    target: Follow button - 'Follow AIW3 on X' task
+  - action: wait
+    target: 'X (twitter.com) tab: follow @AIW3_io'
+  - action: click
+    target: Verify button - 'Follow AIW3 on X' task (+10 pts)
+  - action: click
+    target: Repost button - 'Repost official X campaign' task
+  - action: wait
+    target: 'X tab: repost featured AIW3 campaign post'
+  - action: click
+    target: Verify button - 'Repost official X campaign' task (+20 pts)
+  - action: click
+    target: Join button - 'Join AIW3 Telegram' task
+  - action: wait
+    target: 'Telegram tab: join official AIW3 TG group'
+  - action: click
+    target: Verify button - 'Join AIW3 Telegram' task (+10 pts)
+  - action: click
+    target: Predict button - 'Complete 1 prediction daily' task
+  - action: fill
+    target: prediction market entry amount field
+  - action: wallet_approve
+    target: prediction market transaction/approval in wallet
+  - action: wait
+    target: prediction confirmation (+20 pts)
+  - action: click
+    target: Predict button - repeat until 3 predictions today (+50 pts)
+  - action: click
+    target: Invite button - 'Invite 1 friend to predict daily' (copy referral link)
+  - action: click
+    target: Create button - 'Publish strategy to plaza' task
+  - action: fill
+    target: strategy creation form fields
+  - action: click
+    target: Publish to Strategy Plaza (+20 pts)
+  - action: click
+    target: Trade button - 'Trading volume reward' task
+  - action: fill
+    target: trade order size field (>=1000 USDT per +20 pts)
+  - action: wallet_approve
+    target: token spending approval for trading (exact amount, not unlimited)
+  - action: wallet_sign
+    target: trade order confirmation in wallet
+  - action: wait
+    target: TGE on Aug 3 (countdown on page)
+  - action: goto
+    target: https://aiw3.ai/airdrop
+  - action: click
+    target: Claim Airdrop button
+  - action: wallet_approve
+    target: claim transaction in wallet
+  automatable: manual
+  blockers:
+  - Airdrop is in the Eligibility Confirmation phase (Jul 29 - Aug 3); claim only
+    opens at TGE on Aug 3, so the flow cannot be completed end-to-end now
+  - 'Newbie tasks require external accounts: X (follow @AIW3_io, repost campaign)
+    and Telegram group join, each with a separate ''Verify'' callback'
+  - Social task verification depends on third-party OAuth/anti-bot checks that cannot
+    be reliably automated
+  - Daily tasks require participating in prediction markets (on-chain/off-chain funds
+    not disclosed on page)
+  - Strategy Incentives require real trading volume (+20 pts per 1000 USDT traded;
+    milestone needs 3 consecutive days at >=2000 USDT/day)
+  - Invite task depends on a third party (invited friend must complete a prediction)
+  - Chain not stated on the page; token/claim contract unknown until TGE
+  - Wallet connect/eligibility check may require a signature prompt handled by the
+    wallet extension
+  reconned_at: '2026-07-29T11:49:54Z'
   verdict: null
