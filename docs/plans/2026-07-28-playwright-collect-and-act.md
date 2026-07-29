@@ -2041,3 +2041,204 @@ Task 1–11 전량 완료. 각 Task의 "Step 5: 커밋"은 **개별 커밋 대�
 
 - `.venv/bin/python -m pytest -q` → **147 passed**
 - `.venv/bin/ruff check .` → **All checks passed**
+
+---
+
+## 실측 검증 기록 2차 — 6소스 전량 (2026-07-29)
+
+`run_pipeline(sources=6개 전량, limit=10, dry_run=True)` 1회, 총 832.9s
+(LLM 30콜 / 681.2s = 82%). 산출물: `cache/kb.yaml` 45KB, `actions.yaml` 16KB (첫 적재).
+
+| 지표 | 7/28 (2소스) | 7/29 (6소스) |
+|---|---|---|
+| facts | 46 → 34 | **114** |
+| 고유 프로젝트 | 163 | 110 |
+| 앵커 후보 (2+ 소스) | 12 | **4** |
+| `anchored` | 0 | **0** |
+| targets | — | 10 |
+| recipes | 2 | **7** |
+| 실행 게이트 | rejected 2 | **rejected 7/7** |
+
+### 결론 1 — 앵커 합의 룰은 실전에서 성립하지 않는다 (spec §5.1 재검토 필요)
+
+6소스를 넣어도 `anchored=0`이다. NEXT.md가 가정한 "소스가 적어서 앵커가 0"이 아니었다.
+실제 원인은 두 겹이다.
+
+**(a) 소스 6개 중 4개만 실제로 팩트를 낸다.**
+`airdrops.io` 17 / `icodrops.com` 37 / `cryptorank.io` 11 / `airdropalert.com` 49.
+`freeairdrop.io`는 887자·링크 5개로 렌더돼 LLM이 `[]` 반환, `coinmarketcap.com/airdrop`도
+0건. 두 소스는 사실상 죽어 있다.
+
+**(b) 교차소스 중복 자체가 거의 없다 — 114 팩트에 고유 프로젝트 110개.**
+2개 이상 소스가 언급한 프로젝트는 **4개**(arcus / polymarket / tradoor0 / swarmbase)뿐,
+중복률 3.6%. 집계 사이트들이 서로 다른 롱테일을 싣기 때문이다.
+
+그 4개마저 앵커가 안 된다. 분해하면:
+
+| 분류 | 건수 | 내용 |
+|---|---|---|
+| 앵커 성립 | 0 | — |
+| 도메인 불일치 | 0 | — |
+| **한쪽만 URL 확보** | **3** | arcus(`arcus.xyz`←airdrops.io만), polymarket(`polymarket.com`←icodrops.com만), tradoor0(`tradoor0.xyz`←airdrops.io만) |
+| 양쪽 URL 미확보 | 1 | swarmbase |
+
+즉 **도메인이 충돌해서 막힌 게 아니라, 반대쪽 소스의 상세 페이지에서 프로젝트 URL을
+못 캐서 합의 정족수(2)를 못 채운다.** `enrich_source_url`은 strict JSON만 받고 어떤
+실패든 원본 fact를 그대로 돌려주므로(fail-safe) 조용히 손실된다.
+
+→ **"서로 다른 소스 2개"라는 정족수가 이 데이터 분포에서 구조적으로 달성 불가.**
+v2 게이트 개방 전에 앵커 정의를 바꿔야 한다 (예: 단일 소스 + 프로젝트 자체 도메인의
+X/Discord 상호참조, 또는 정족수 근거를 소스 수가 아닌 다른 축으로).
+
+### 결론 2 — 정찰 LLM이 넘겨준 페이지를 안 보고 독립적으로 웹을 뒤진다 (soundness 파괴)
+
+`ClaudeCliClient`는 `claude --print --dangerously-skip-permissions`를 호출한다. 이
+서브프로세스는 **세션의 MCP 서버·툴 전권**을 물려받는다. 그래서 파이프라인이 넘긴
+페이지가 비어 있으면, 모델이 "정보 부족"을 반환하는 대신 **자기 브라우저를 띄워
+직접 조사한다.**
+
+AIW3 사례가 결정적이다:
+
+```
+[425.5s] resolve  airdrops.io/visit/wna3/ -> https://aiw3.ai/
+[428.8s] render ok https://aiw3.ai/  0c 0 links      ← 페이지 내용 0자
+[428.8s] LLM #21 start  in=123c                       ← 프롬프트 123자
+[662.6s] LLM #21 ok     233.8s  out=5075c             ← 233초, 5075자
+```
+
+123자 프롬프트에 233.8초. (비교: 1,579자 프롬프트의 순수 텍스트 완성은 3.7초.)
+그 시간에 무엇을 했는지는 레포 워킹 디렉토리에 남은 부산물이 증언한다 —
+`.playwright-mcp/` 스냅샷·콘솔로그 7건과 스크린샷 4장, 타임스탬프 19:31:05~19:33:26이
+AIW3 정찰 구간(19:30:19~19:34:13) **안에** 들어온다. AntDrop 정찰 구간(19:35:36~43)에도
+스냅샷 1건이 있다.
+
+결과물은 근거 없는 상세함을 갖는다. 0자 페이지에서 나온 AIW3 레시피는 **33 스텝**,
+`chain=solana,bsc`, blocker에 지갑 목록("OKX, MetaMask, Binance, Gate, Bitget")까지
+명시하고, `entry_url`은 렌더한 적 없는 `https://aiw3.ai/airdrop`이다. Arcium도
+68자 페이지에서 8 스텝 + "RTG 포털 로그인 서명 필요"를 단정한다.
+
+세 가지가 동시에 깨진다.
+
+1. **접지(grounding)** — 레시피가 파이프라인이 관측한 페이지의 함수가 아니다.
+   `actions.yaml`에 쌓이는 데이터가 v2 allowlist의 근거인데, 그 근거가 재현 불가능하다.
+2. **부작용** — LLM 층이 레포에 파일을 쓰고 자체 브라우저를 몬다. 오케스트레이터가
+   통제하지 못하는 I/O다.
+3. **보안** — 지갑 서명 앞단을 fail-closed로 지키는 설계인데, 정작 **분석 층이
+   무제한 권한으로 돈다.** guard가 지키는 것은 지갑이고, LLM 층은 아무도 안 지킨다.
+
+한편 방어 심층화는 의도대로 작동했다: 근거 없는 레시피 7건 전부 앵커 부재로
+`rejected`. 게이트가 열려 있었다면 33 스텝 환각이 서명 단계까지 갔다.
+
+### 결론 3 — 렌더러가 SPA·봇차단 사이트에서 빈 페이지를 반환한다
+
+`render()`는 `wait_until="domcontentloaded"` + 2초 settle이다. 집계 사이트는 잘 긁히지만
+프로젝트 실사이트는 자주 0자다.
+
+| URL | 렌더 결과 |
+|---|---|
+| `airdrops.io/aiw3/` (집계) | 7,481자 / 86 링크 |
+| `aiw3.ai/` (프로젝트) | **0자 / 0 링크** |
+| `rtg.arcium.com/` | **68자 / 1 링크** |
+| `www.antdrop.io/` | **19자 / 0 링크** |
+| `www.arc.network/` | 6,993자 / 95 링크 |
+| `app.apyx.fi/join/...` | 1,480자 / 14 링크 |
+| `freeairdrop.io` (소스) | **887자 / 5 링크** (21.6초) |
+
+`scout_recipe`에 **빈 페이지 가드가 없다.** 0자 페이지도 그대로 LLM에 넘긴다.
+AntDrop만 정직하게 "404"를 반환했고(1 스텝), 나머지 빈 페이지는 환각으로 채워졌다.
+
+### 레시피 품질 (렌더 성공분은 쓸 만하다)
+
+7건 분포: `signature_kind` = approve 5 / tx 2, `automatable` = manual 6 / partial 1,
+`chain` = null 3 / solana / ethereum / solana,bsc / Arc.
+
+렌더가 성공한 대상의 판단은 보수적이고 정확하다 — Alberich Token과 EarnBIT를 "무료
+에어드랍이 아니라 유료 IDO/IEO"로 분류, Arc를 "에어드랍 미발표, 테스트넷 개발자
+프로그램뿐 — 투기적 파밍"으로 분류. 즉 **정찰 로직 자체는 건강하고, 입력(렌더)과
+샌드박싱(툴 권한)이 문제다.**
+
+### 우선순위 (v2 게이트 개방 전 필수)
+
+1. **`ClaudeCliClient` 툴 차단** — `--allowedTools ""` 등으로 순수 텍스트 완성으로
+   묶는다. 이게 결론 2의 3가지 파손을 한 번에 닫는다. 최우선.
+2. **`scout_recipe` 빈 페이지 가드** — `page.text` 길이 하한 미달이면 `None` 반환.
+3. **렌더러 강화** — `networkidle` 대기 / settle 상향 / UA 지정. 그 후 freeairdrop.io ·
+   coinmarketcap 재평가.
+4. **앵커 정의 재설계** (spec §5.1) — 현 정족수 룰은 달성 불가.
+
+1~3을 고치기 전의 `actions.yaml` 데이터는 v2 allowlist 근거로 쓸 수 없다.
+
+---
+
+## 실측 검증 기록 3차 — 결함 4건 수정 후 (2026-07-29)
+
+수정: spec §2.3(LLM 샌드박싱) + §4.3(렌더 폴링 + 빈 페이지 가드). 테스트 166 passed, ruff clean.
+`cache/kb.yaml`·`actions.yaml`은 1차 데이터가 환각 오염이라 폐기하고 새로 적재했다.
+
+| 지표 | 1차 (결함 상태) | 3차 (수정 후) |
+|---|---|---|
+| 총 소요 | 832.9s (LLM 82%) | **667.4s** (LLM 70%) |
+| LLM 콜 | 30 | 32 |
+| 팩트 | 114 | **160** |
+| 팩트를 내는 소스 | 4/6 | **5/6** |
+| 앵커 후보 | 4 | **7** |
+| **앵커 성립** | **0** | **1** (Polymarket) |
+| 레시피 | 7 (2건 환각) | **5 (전건 접지)** |
+| 게이트 | rejected 7/7 (전부 앵커 부재) | rejected 6/6 (**2건은 다른 규칙**) |
+
+### 1. 앵커가 처음 성립했다 — 그리고 1차 결론을 철회한다
+
+1차 기록에서 "정족수 룰은 이 데이터 분포에서 구조적으로 달성 불가"라고 썼다. **틀렸다.**
+`anchored=0`의 원인은 룰이 아니라 `freeairdrop.io`의 렌더 결함이었다. 그 소스를 살리자
+(887자 → 5,523자, 팩트 0건 → 55건) 첫 앵커가 성립했다 — `polymarket.com`을
+`freeairdrop.io`와 `icodrops.com`이 동의했다. spec §5.1 경고문을 이에 맞춰 고쳤다.
+
+수율은 여전히 얇다 (151 프로젝트 중 1건, 0.7%). 실패 지점은 도메인 충돌이 아니라
+**한쪽 소스에서 URL을 못 캐는 것** — 4건 한쪽만 확보(arcus/metamask/tradoor0/zeni),
+2건 양쪽 실패(dango/truenorth). 하루 1건이 v2에 충분한지는 며칠 운영해보고 판단한다.
+
+### 2. 2차 방어층이 처음 작동했다
+
+1차에서는 거부 사유가 **전부** "앵커 부재"였다 — 즉 규칙 ① 하나만 시험된 셈이다.
+이번엔 Polymarket이 앵커를 얻어 규칙 ①을 통과하고, **`무제한 approve 서명 요구`**에
+걸려 거부됐다. 계층 방어가 실제로 계층으로 동작함이 처음 확인됐다.
+
+### 3. 레시피 접지가 회복됐다
+
+AIW3 비교 (같은 프로젝트, 같은 URL):
+
+| | 1차 (0자 페이지 + 툴 전권) | 3차 (4,232자 + 샌드박스) |
+|---|---|---|
+| LLM 소요 | 233.8s | 15.2s |
+| `entry_url` | `aiw3.ai/airdrop` — **렌더한 적 없음** | `aiw3.ai/` — 실제 렌더한 URL |
+| 스텝 | 33 | 18 |
+| `chain` | `solana,bsc` (위조) | `Solana` |
+| 첫 스텝 | — | `click "Claim Airdrop button (hero section)"` — 실렌더 본문에서 관측 가능 |
+| 파일 부작용 | 스크린샷 4장 + MCP 스냅샷 7건 | 없음 |
+
+Aligned 레시피의 blocker가 접지의 좋은 예다: "the page at alignedlayer.com is a B2B
+infrastructure marketing site (Wallet/Rollup as a Service, proof aggregation) and contains
+no airdrop, quest, points, or task interface" — 페이지를 실제로 읽은 서술이다.
+
+5건 분포: `signature_kind` = approve 4 / message 1, `automatable` = manual 3 / partial 2,
+`chain` = Polygon / Solana / Ethereum / BNB Chain / null.
+
+### 4. 렌더 폴링 효과
+
+| URL | 1차 | 3차 | 비고 |
+|---|---|---|---|
+| `freeairdrop.io` | 887자 → 팩트 0건 | **5,523자 → 팩트 55건** | 죽은 소스 부활 |
+| `aiw3.ai` | 0자 (가드 차단) | **4,232자 (통과)** | 9.2s |
+| `arc.network` | 6,993자 | 6,993자 | **4.8s** — 이미 충분해 폴링 0회 |
+| `rtg.arcium.com` | 68자 | 68자 (차단) | 14.8s 예산 소진 — 진짜 로그인 월 |
+| `www.antdrop.io` | 19자 | 19자 (차단) | 13.7s 예산 소진 — 진짜 404 |
+| `coinmarketcap.com/airdrop` | 팩트 0건 | 팩트 0건 | 렌더 정상(2,472자), 활성 캠페인 실제 없음 |
+
+폴링이 "너무 일찍 포기"를 고쳤고, 남은 진짜 빈 페이지는 가드가 막는다. 두 수정은 상보적이다.
+
+### 남은 것
+
+- 앵커 수율 추이 관찰 (며칠) → 정족수 근거 확장 여부 판단
+- `enrich_source_url`의 조용한 손실 — strict JSON 파싱 실패 시 원본 반환. 앵커 미달의
+  주요 경로이므로 계측(실패 사유 로깅)이 먼저 필요하다
+- 이제 `actions.yaml` 데이터는 접지되어 있으므로 v2 allowlist 근거로 쓸 수 있다

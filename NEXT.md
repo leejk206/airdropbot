@@ -39,22 +39,70 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 - 테스트 **147 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
 - 라이브 검증 완료: 6개 소스 렌더 6/6, 177 팩트, 앵커 후보 12개, 레시피 생성·guard 거부 확인.
 - **커밋 완료** — `d27f87c` (36 files, +4425). spec/plan/구현 단일 번들로 master push.
-- **KB 영속 데이터 아직 없음** — `facts.yaml`/`actions.yaml` 미생성. 라이브 검증은 일회성이라
-  누적 데이터가 안 남았다. 아래 다음 액션 1번이 첫 실데이터 적재가 된다.
+- **6소스 전량 라이브 검증 완료 (2026-07-29)** — 832.9s, LLM 30콜. 첫 실데이터 적재:
+  `cache/kb.yaml` 45KB(114 팩트), `actions.yaml` 16KB(7 레시피). 결과
+  `facts=114 anchored=0 targets=10 recipes=7`, 실행 게이트 **rejected 7/7**.
+  전체 분해는 plan 문서 "실측 검증 기록 2차" 참조.
 
-### 다음 액션
+### 결함 4건 수정 완료 (2026-07-29, TDD / 166 passed / ruff clean)
 
-1. **6개 소스 전량 파이프라인 1회 실행** — 2소스만으로는 앵커가 0개. 6소스에서 실제
-   `anchored > 0`이 나오는지, 레시피가 몇 건 쌓이는지 확인.
-2. 며칠 운영해 `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포 집계.
-3. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12).
-4. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
+라이브 검증에서 드러난 결함을 spec 갱신 후 수정했다. 상세는 plan "실측 검증 기록 3차".
+
+1. **LLM 샌드박싱** (`llm.py`, spec §2.3) — `--dangerously-skip-permissions`가 서브프로세스에
+   세션 MCP·툴 전권을 물려줘서, 빈 페이지를 받으면 모델이 **자기 브라우저로 독립 조사**했다
+   (AIW3: 0자 페이지 + 123자 프롬프트 → 233.8초 → 33스텝 환각 + 레포에 스크린샷 4장).
+   → `--strict-mcp-config` + `--disallowedTools '*'` + 유효 툴명 열거 + `cwd=` 격리.
+   `--allowedTools ''`는 실측 결과 **불충분**(WebFetch만 막히고 Bash+curl 우회).
+2. **빈 페이지 가드** (`scout.py`, spec §4.3) — 본문 200자 미달 시 LLM 호출 없이 `None`.
+3. **렌더 폴링** (`browser.py`, spec §4.3) — 고정 settle 폐기. `aiw3.ai`는 빈 페이지가 아니라
+   **10초에 4,292자가 그려지는** 페이지였다 (2s/5s 0자) — 너무 일찍 포기한 쪽이 문제였다.
+   하한 도달 시 즉시 중단하는 폴링이라 이미 그려진 페이지는 안 기다린다(`arc.network` 4.8s).
+4. **데스크톱 UA + networkidle 대기** — `render`/`resolve_redirect` 양쪽.
+
+`tests/test_browser.py` 신설 (기존 커버리지 0). 1차 실행의 `actions.yaml`·`cache/kb.yaml`은
+환각 오염이라 폐기하고 재적재했다.
+
+### 앵커 정족수 룰 — 1차 판정 철회
+
+1차에서 "정족수 룰은 실데이터에서 구조적으로 달성 불가"라고 기록했다. **틀렸다.**
+`anchored=0`의 원인은 룰이 아니라 `freeairdrop.io`의 렌더 결함이었다. 그 소스를 살리자
+(팩트 0건 → 55건) **첫 앵커가 성립했다** — `polymarket.com`을 `freeairdrop.io`와
+`icodrops.com`이 동의. spec §5.1 경고문을 정정했다.
+
+수율은 얇다 (151 프로젝트 중 1건). 실패 지점은 도메인 충돌이 아니라 **한쪽 소스에서 URL을
+못 캐는 것**이고, `enrich_source_url`이 파싱 실패를 조용히 삼킨다. 하루 1건이 v2에 충분한지는
+며칠 운영해보고 판단한다 — **지금 룰을 바꿀 근거는 없다.**
+
+### 3차 실행 결과 (수정 후)
+
+`facts=160 anchored=2 targets=10 recipes=5 runs=6`, 667.4s (1차 832.9s).
+
+| 지표 | 1차 | 3차 |
+|---|---|---|
+| 팩트를 내는 소스 | 4/6 | **5/6** |
+| 앵커 성립 | 0 | **1** |
+| 레시피 | 7 (2건 환각) | **5 (전건 접지)** |
+| 게이트 거부 사유 | 전부 앵커 부재 | **2건은 `무제한 approve`** ← 2차 방어층 첫 작동 |
+
+### 잘 작동한 것
+
+- **방어 심층화** — 1차에서 환각 레시피 7건 전부 앵커 부재로 `rejected`. 게이트가 열려
+  있었다면 33 스텝 환각이 서명까지 갔다. 3차에서는 앵커를 얻은 Polymarket이 규칙 ①을
+  통과하고 **2차 규칙(`무제한 approve`)에 걸렸다** — 계층이 계층으로 작동함이 확인됐다.
+- **2-pass enrichment** — `airdrops.io/visit/9ea3/` → `arcus.xyz` 등 리다이렉트 해소 정상.
+- **정찰 판단 품질** — 접지된 뒤로도 보수적·정확. Aligned를 "B2B 인프라 마케팅 사이트,
+  에어드랍·퀘스트 인터페이스 없음"으로, 1차에선 Alberich/EarnBIT를 "유료 IDO/IEO,
+  무료 경로 없음"으로 정확히 분류.
+- **fail-safe 설계** — 결함 3건이 전부 "조용히 건너뛰기"로 떨어져 파이프라인이 죽지 않았다.
+  대가는 조용한 손실이라 계측이 필요하다 (다음 액션 1번).
 
 ---
 
-**마지막 갱신**: 2026-07-29 KST (v1.0 커밋·push). 아래 §1~§4 본문은 2026-05-25 v0.11 시점 기록.
+**마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + 3차 라이브 검증).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `d27f87c` (master, pushed) — v1.0 Playwright 파이프라인 커밋 완료. working tree clean.
+**현재 HEAD**: `d27f87c` (master, pushed). **결함 수정분은 미커밋** — `llm.py`,
+`collectors/browser.py`, `recon/scout.py`, `tests/test_browser.py`(신설), spec/plan/NEXT 갱신,
+`actions.yaml`(3차 실데이터). 사용자 승인 대기.
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.

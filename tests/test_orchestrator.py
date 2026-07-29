@@ -16,7 +16,19 @@ _LIST_B = RenderedPage(
     text="Citrea bridge",
     links=(("Citrea", "https://icodrops.com/citrea/"),),
 )
-_PROJECT = RenderedPage(url="https://citrea.xyz", title="Citrea", text="Faucet", links=())
+# 정찰 대상 페이지는 빈 페이지 가드(spec §4.3, 하한 200자)를 넘겨야 한다 — 실제 렌더
+# 결과는 수천 자다.
+_PROJECT = RenderedPage(
+    url="https://citrea.xyz",
+    title="Citrea",
+    text=(
+        "Citrea Testnet Faucet. Connect your wallet to request test tokens. "
+        "Complete the bridge activity to become eligible for the upcoming airdrop. "
+        "Steps: connect wallet, request tokens, bridge to Citrea, then check "
+        "eligibility on the dashboard. No capital required beyond gas fees."
+    ),
+    links=(),
+)
 
 
 def _detail(url: str) -> RenderedPage:

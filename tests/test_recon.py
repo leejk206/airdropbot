@@ -1,7 +1,7 @@
 from airdropbot.collectors.browser import RenderedPage
 from airdropbot.llm import FakeLLM
 from airdropbot.models import Fact, Recipe, Step
-from airdropbot.recon.scout import scout_recipe
+from airdropbot.recon.scout import MIN_PAGE_TEXT_CHARS, scout_recipe
 from airdropbot.recon.store import load_recipes, save_recipes
 
 _FACT = Fact(
@@ -12,7 +12,15 @@ _FACT = Fact(
     collected_at="2026-07-28",
     official_url="https://citrea.xyz",
 )
-_PAGE = RenderedPage(url="https://citrea.xyz", title="Citrea", text="Faucet", links=())
+# 실제 렌더 결과는 수천 자다. 짧은 픽스처는 빈 페이지 가드(spec §4.3)에 걸리므로
+# 현실적인 분량을 준다.
+_PAGE_TEXT = (
+    "Citrea Testnet Faucet. Connect your wallet to request test tokens. "
+    "Complete the bridge activity to become eligible for the upcoming airdrop. "
+    "Steps: connect wallet, request tokens from the faucet, bridge to Citrea, "
+    "then check your eligibility on the dashboard. No capital required beyond gas."
+)
+_PAGE = RenderedPage(url="https://citrea.xyz", title="Citrea", text=_PAGE_TEXT, links=())
 
 _GOOD = """{"entry_url": "https://citrea.xyz/faucet", "chain": "citrea-testnet",
  "signature_kind": "message", "approve_unlimited": false, "capital_required_usd": 0,
@@ -29,6 +37,43 @@ def test_scout_builds_recipe():
     assert r.signature_kind == "message"
     assert r.automatable == "full"
     assert r.reconned_at == "2026-07-28"
+
+
+def test_scout_skips_empty_page_without_calling_llm():
+    """0자 페이지에 LLM을 부르면 환각 레시피가 나온다 (AIW3 33 스텝, spec §4.3)."""
+    page = RenderedPage(url="https://aiw3.ai/", title="", text="", links=())
+    llm = FakeLLM([_GOOD])
+
+    assert scout_recipe(_FACT, page, llm, now="2026-07-29") is None
+    assert llm.calls == [], "빈 페이지인데 LLM을 호출했다"
+
+
+def test_scout_skips_page_below_text_floor():
+    """실측 환각 유발 페이지는 19~68자였다 (antdrop.io / rtg.arcium.com)."""
+    page = RenderedPage(url="https://rtg.arcium.com/", title="RTG", text="x" * 68, links=())
+    llm = FakeLLM([_GOOD])
+
+    assert scout_recipe(_FACT, page, llm, now="2026-07-29") is None
+    assert llm.calls == []
+
+
+def test_scout_ignores_whitespace_when_measuring_page():
+    """공백만 있는 페이지는 내용이 없는 페이지다."""
+    page = RenderedPage(url="https://x.dev/", title="", text="   \n\t  " * 60, links=())
+    llm = FakeLLM([_GOOD])
+
+    assert scout_recipe(_FACT, page, llm, now="2026-07-29") is None
+    assert llm.calls == []
+
+
+def test_scout_proceeds_at_text_floor():
+    """하한을 만족하면 정찰한다 — 가드가 정상 페이지를 막아선 안 된다."""
+    page = RenderedPage(url="https://citrea.xyz", title="C", text="y" * MIN_PAGE_TEXT_CHARS,
+                        links=())
+    llm = FakeLLM([_GOOD])
+
+    assert scout_recipe(_FACT, page, llm, now="2026-07-29") is not None
+    assert len(llm.calls) == 1
 
 
 def test_scout_returns_none_on_unparseable_output():

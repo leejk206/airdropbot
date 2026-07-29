@@ -16,6 +16,11 @@ from airdropbot.models import ACTIONS, AUTOMATABLE, SIGNATURE_KINDS, Fact, Recip
 _MOST_DANGEROUS_SIGNATURE = "approve"
 _LEAST_AUTOMATABLE = "manual"
 
+# 정찰에 쓸 만한 페이지의 본문 길이 하한. 실측(2026-07-29) 환각 유발 페이지는
+# 0자(aiw3.ai)·19자(antdrop.io)·68자(rtg.arcium.com), 정상 판단이 나온 최소 페이지는
+# 1,480자(app.apyx.fi)였다. spec §4.3.
+MIN_PAGE_TEXT_CHARS = 200
+
 _SYSTEM = (
     "You inspect a project's page and describe the exact steps a user must perform "
     "to complete its airdrop activity. Return STRICT JSON only, one object with keys: "
@@ -30,7 +35,15 @@ _SYSTEM = (
 
 
 def scout_recipe(fact: Fact, page: RenderedPage, llm: LLMClient, *, now: str) -> Recipe | None:
-    """페이지에서 액션 레시피를 뽑는다. 실패하면 None (그 프로젝트는 오늘 건너뛴다)."""
+    """페이지에서 액션 레시피를 뽑는다. 실패하면 None (그 프로젝트는 오늘 건너뛴다).
+
+    본문이 하한 미달이면 LLM을 부르지 않는다. 정찰을 건너뛰는 대가(오늘 그 프로젝트
+    하나 누락, 회복 가능)가 환각 레시피를 ``actions.yaml``에 적재하는 대가(v2
+    allowlist 근거 오염, 회복 어려움)보다 훨씬 싸다. spec §4.3.
+    """
+    if len(page.text.strip()) < MIN_PAGE_TEXT_CHARS:
+        return None
+
     prompt = (
         f"PROJECT: {fact.project}\nOFFICIAL_URL: {fact.official_url}\n"
         f"KNOWN: {fact.content}\n\nPAGE_URL: {page.url}\nTITLE: {page.title}\n\n"
