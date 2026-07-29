@@ -1,0 +1,254 @@
+recipes:
+- project: Polymarket
+  recipe_hash: sha256:695bd27f7040fa377dd3a1c8a729223fe8922c77e76c975695bd1a5fa3ff4bd0
+  entry_url: https://polymarket.com/
+  chain: Polygon
+  signature_kind: approve
+  approve_unlimited: true
+  capital_required_usd: 50.0
+  steps:
+  - action: goto
+    target: https://polymarket.com/
+  - action: click
+    target: Sign Up button in the top-right header
+  - action: fill
+    target: email address (or choose Google / wallet login)
+  - action: wait
+    target: email verification code / OAuth redirect to complete
+  - action: wallet_connect
+    target: connect or provision the embedded Polygon wallet (Magic/proxy wallet)
+      for the account
+  - action: click
+    target: Deposit button
+  - action: fill
+    target: USDC deposit amount and bridge/transfer from an external wallet or card
+      on-ramp
+  - action: wallet_approve
+    target: USDC ERC-20 approval to the Polymarket CTF Exchange / Conditional Tokens
+      contracts on Polygon
+  - action: wait
+    target: deposit to be confirmed and USDC balance to appear in the account
+  - action: click
+    target: a market card on the homepage (e.g. 'Fed Decision in July?')
+  - action: click
+    target: Yes or No outcome share button
+  - action: fill
+    target: order amount in USDC in the trade panel
+  - action: click
+    target: Buy / Place order button
+  - action: wallet_sign
+    target: EIP-712 order signature for the CLOB order
+  - action: wait
+    target: order fill confirmation and position to appear in Portfolio
+  - action: click
+    target: Rewards link in the footer to review liquidity-reward / activity eligibility
+  - action: goto
+    target: https://polymarket.com/portfolio
+  - action: wait
+    target: repeat trading over time to accumulate volume/activity that a future airdrop
+      may credit
+  automatable: manual
+  blockers:
+  - Airdrop is speculative — no official points/XP program or claim page is exposed
+    on the landing page; rewards are inferred from trading activity only
+  - Account creation requires email/Google/wallet login with likely CAPTCHA and email
+    verification
+  - 'Geo-restrictions: US users are routed to the CFTC-regulated Polymarket US entity;
+    the international platform blocks several jurisdictions via IP/geoblock and ToS'
+  - KYC/identity verification required for deposits and withdrawals on regulated entity
+  - Real capital at risk — trading prediction markets can lose the deposited funds
+  - USDC deposit bridge to Polygon plus one-time USDC approval to the CTF exchange
+    contracts
+  - Automated trading is possible via the CLOB API, but requires API key derivation
+    and is not equivalent to the UI activity being measured
+  reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
+- project: 3DOS
+  recipe_hash: sha256:a1a368bff404e90ae610da31b26f0f380dfa17ebffc20ca589493032309f9790
+  entry_url: https://3dos.io/
+  chain: null
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://3dos.io/
+  - action: click
+    target: Enter Now (marketplace entry) or Login link in the top nav
+  - action: fill
+    target: 'Registration form: email, password (use referral link if available)'
+  - action: wait
+    target: Email verification message; confirm account via emailed link
+  - action: click
+    target: Login / submit credentials on 3DOS dashboard
+  - action: wallet_connect
+    target: Connect wallet button in dashboard/profile settings (if offered for airdrop
+      eligibility)
+  - action: wallet_sign
+    target: Sign-in / wallet-linking message signature request
+  - action: click
+    target: Daily task button in dashboard (e.g. Generate API Key / daily claim) to
+      accrue points
+  - action: wait
+    target: Points balance updates in dashboard
+  - action: click
+    target: Repeat the daily task each day for the duration of the points campaign
+  - action: wallet_approve
+    target: Any on-chain claim/approval transaction presented at token distribution
+      time
+  automatable: partial
+  blockers:
+  - No official airdrop/points page is linked from the landing page; the point-earning
+    dashboard sits behind the 'Enter Now'/'Login' flow and could not be inspected
+  - Account registration with email verification is required, which breaks unattended
+    automation
+  - Likely bot protection (captcha/Cloudflare) on register and login
+  - Points accrue from repeated daily actions in the dashboard, so a single run is
+    not sufficient
+  - Full reward tier ('Connect your 3D Printer') requires physical 3D printer hardware
+    and manual contact-form onboarding
+  - Wallet linking / claim signature requirements and target chain are not disclosed
+    on the public page
+  reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
+- project: AIW3
+  recipe_hash: sha256:902add12c662476cda74d7b016bfa13dd35a56e30e7326e4e40f2ad307b6e6af
+  entry_url: https://aiw3.ai/
+  chain: Solana
+  signature_kind: message
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://aiw3.ai/
+  - action: click
+    target: Claim Airdrop button (hero section)
+  - action: wait
+    target: Airdrop / app page load
+  - action: wallet_connect
+    target: Connect Wallet (Phantom / Solana wallet)
+  - action: wallet_sign
+    target: Sign-in message to authenticate wallet ownership
+  - action: fill
+    target: Referral / invite code field (if prompted)
+  - action: click
+    target: Register / Sign up confirm button
+  - action: wait
+    target: Airdrop task dashboard load
+  - action: click
+    target: Daily check-in task
+  - action: click
+    target: Social task — Follow AIW3 on X
+  - action: click
+    target: Social task — Join Discord/Telegram
+  - action: click
+    target: Verify button for each completed social task
+  - action: click
+    target: Trading / strategy task entry (CopyTrade or Trade)
+  - action: wallet_approve
+    target: Token approval or deposit transaction for trading task
+  - action: click
+    target: Complete trade / follow strategy confirm
+  - action: wait
+    target: Points balance update
+  - action: click
+    target: Claim / redeem airdrop button once points threshold reached
+  - action: wallet_sign
+    target: Claim confirmation signature
+  automatable: partial
+  blockers:
+  - No dedicated airdrop URL published; 'Claim Airdrop' / 'Launch App' routes to an
+    app subdomain not visible from the landing page
+  - Social tasks (X/Twitter follow, retweet, Discord/Telegram join) require third-party
+    OAuth and manual human interaction
+  - Daily tasks require repeated logins across multiple days until TGE
+  - Trading tasks require depositing capital and/or connecting a CEX API key, amount
+    not disclosed on the page
+  - API key creation for AIW3claw skills requires manual account setup and local secret
+    storage
+  - Points threshold for airdrop eligibility is undisclosed
+  - Possible invite/referral code gating and anti-bot checks (CAPTCHA) on registration
+  - TGE countdown (Aug 3) implies a hard deadline for task completion
+  reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
+- project: Aligned
+  recipe_hash: sha256:0e363178f062a934145036493e49d9cc0ed863bf41c20eaa7989532759961615
+  entry_url: https://alignedlayer.com/
+  chain: Ethereum
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://alignedlayer.com/
+  - action: wait
+    target: page load; scan for airdrop/quest/claim/points navigation entry
+  - action: click
+    target: Developers > Documentation (https://docs.alignedlayer.com) to look for
+      an official airdrop/task announcement
+  - action: goto
+    target: Company > Blog — check for an official ALIGN airdrop/task campaign post
+      and its entry URL
+  - action: goto
+    target: X (Twitter) footer link — verify the official campaign URL before any
+      wallet interaction
+  automatable: manual
+  blockers:
+  - The page at https://alignedlayer.com/ is a B2B infrastructure marketing site (Wallet/Rollup
+    as a Service, proof aggregation) and contains no airdrop, quest, points, or task
+    interface.
+  - No official airdrop URL is known (OFFICIAL_URL is None); the actual ALIGN task
+    portal, if any, is not linked from this page.
+  - No wallet-connect element, no ALIGN token claim flow, and no task list exist on
+    the inspected page — steps cannot be derived.
+  - The only actionable CTAs are 'Apply now' / 'TALK TO A FOUNDER' (founding-partner
+    sales funnel) and doc links, which are unrelated to a retail airdrop.
+  - Signature requirement is unverified; assumed 'approve' conservatively because
+    the real task flow could not be inspected.
+  - Eligibility, timing, and whether an ALIGN airdrop is officially announced could
+    not be confirmed from this source.
+  reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
+- project: AlloX
+  recipe_hash: sha256:a9b68cd34819bad51d5e8e886a3199287f549bff76af6f294bf6f6fe92e2df52
+  entry_url: https://www.allox.ai/
+  chain: BNB Chain
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://www.allox.ai/
+  - action: click
+    target: Launch App 버튼 (헤더 또는 히어로 섹션)
+  - action: wallet_connect
+    target: dApp의 Connect Wallet 모달 — BNB Chain 네트워크 선택
+  - action: wallet_sign
+    target: 로그인/인증용 메시지 서명 요청
+  - action: wait
+    target: 대시보드 로딩 및 계정 등록 완료
+  - action: click
+    target: Daily Bonus (일일 체크인) 버튼
+  - action: click
+    target: Social Tasks 목록의 각 태스크 (X 팔로우/리트윗, Telegram 참여 등)
+  - action: click
+    target: 각 소셜 태스크의 Verify / Claim 버튼
+  - action: click
+    target: Narrative 선택 → 리스크 티어(High/Mid/Low Cap) 및 금액 선택
+  - action: wallet_approve
+    target: 할당 금액에 대한 토큰 approve (정확한 금액 한도로 설정)
+  - action: wallet_sign
+    target: 바스켓 할당 실행 트랜잭션 서명
+  - action: wait
+    target: 트랜잭션 확정 및 포인트 반영 확인
+  automatable: manual
+  blockers:
+  - Launch App 대상 dApp URL이 랜딩 페이지에 명시되어 있지 않아 실제 앱 도메인 확인 필요
+  - 지갑 연결 후 로그인 서명(SIWE 형식 추정) 필요 — 자동화 시 개인키 서명 필요
+  - Daily Bonus / Social Tasks는 X·Telegram 등 외부 소셜 계정 인증이 필요할 가능성이 높음 (캡차/OAuth)
+  - Binance Wallet Booster 형식 전용 캠페인(7/2–8/1)은 Binance Wallet 앱 내 in-app 브라우저에서만 참여
+    가능할 수 있음
+  - 온체인 바스켓 할당(Allocation) 태스크를 수행하려면 실제 자금과 ERC20 approve 트랜잭션이 필요 (가스비 포함)
+  - 포인트 적립 조건·스냅샷 기준이 페이지에 공개되어 있지 않음
+  reconned_at: '2026-07-29T11:22:46Z'
+  verdict: null
