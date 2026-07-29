@@ -2242,3 +2242,63 @@ no airdrop, quest, points, or task interface" — 페이지를 실제로 읽은 
 - `enrich_source_url`의 조용한 손실 — strict JSON 파싱 실패 시 원본 반환. 앵커 미달의
   주요 경로이므로 계측(실패 사유 로깅)이 먼저 필요하다
 - 이제 `actions.yaml` 데이터는 접지되어 있으므로 v2 allowlist 근거로 쓸 수 있다
+
+---
+
+## 실측 검증 기록 4차 — enrichment 계측 (2026-07-29)
+
+spec §4.4 신설 후 `enrich_source_url`을 `EnrichResult(fact, outcome, detail)` 반환으로
+바꾸고 `run_pipeline` 요약에 `enrich`(개수) + `enrich_log`(실패만)를 실었다.
+177 tests pass, ruff clean.
+
+### 계측이 가설을 반증했다
+
+계측 전 추정한 주범은 "strict JSON 파싱 실패를 조용히 삼킨다"였다 (1차 라이브에서
+enrichment 호출 하나가 412자 산문을 반환한 것을 관측했으므로). **틀렸다.**
+
+| outcome | 건수 |
+|---|---|
+| **`skipped_no_detail_url`** | **12** |
+| `filled` | 9 |
+| `skipped_already_known` | 1 |
+| `no_url_reported` | 1 |
+| `unparseable_output` | **0** |
+| `render_failed` / `llm_failed` / `rejected_*` / `resolve_failed` | **0** |
+| 총 호출 | 23 |
+
+진짜 병목은 **`detail_url`이 없어서 enrichment가 시작조차 못 하는 것**이다. 23콜 중
+12콜(52%)이 렌더도 LLM 호출도 없이 건너뛰어졌다. 그리고 **detail_url이 있으면
+enrichment는 10번 중 9번 성공한다.** 메커니즘은 건강하고, 절반의 후보에 아예 호출되지
+않는 것이 문제다.
+
+### 원인은 수집 단이고 소스별로 갈린다
+
+| 소스 | 팩트 | `detail_url` 있음 | 비율 |
+|---|---|---|---|
+| `freeairdrop.io` | 110 | 110 | **100%** |
+| `icodrops.com` | 24 | 24 | **100%** |
+| `cryptorank.io` | 20 | 20 | **100%** |
+| `airdropalert.com` | 95 | 51 | **54%** |
+| `airdrops.io` | 70 | 34 | **49%** |
+
+세 소스가 100%이므로 추출 프롬프트의 일반적 결함이 아니다. 두 소스의 리스팅 구조에서
+링크를 못 집어내는 문제다. 특히 `airdrops.io`는 상세 링크(`airdrops.io/<project>/`)가
+분명히 존재하는데 49%다 — 링크가 없는 게 아니라 LLM이 일관되게 못 집는 쪽으로 보인다.
+
+### 부수 확인
+
+- **앵커 4건** (3차 2건 → 4차 4건). KB 누적이 교차 일치 기회를 늘린다. 팩트 160,
+  레시피 6, 게이트 rejected 8/8, 638.6s.
+- **정찰 국면 재시도** — orchestrator가 앵커링 국면 실패분을 정찰 직전에 한 번 더
+  enrich한다(설계된 동작). 계측 수치를 읽을 때 이걸 모르면 "왜 후보 수보다 호출이
+  많은가"를 오해한다. `test_failed_enrichment_is_retried_before_recon`으로 고정했다.
+
+### 다음 조치 — 또 한 번 측정
+
+`detail_url` 커버리지를 올리는 것이 앵커 수율의 상한을 정한다. 다만 **바로 프롬프트를
+고치지 않는다.** 두 소스의 리스팅 페이지에서 프로젝트당 상세 링크가 실제로 프롬프트에
+들어가는지(링크 수 153개 vs `MAX_LINKS` 절단, 프로젝트 대비 링크 밀도) 먼저 확인한 뒤
+손댄다. 이번에 가설이 틀린 경험이 그 순서를 지지한다.
+
+정족수 룰 확장 여부도 `detail_url`을 고친 뒤에 판단한다 — 병목이 다른 곳인 상태에서
+룰을 바꾸면 무엇이 효과를 냈는지 알 수 없다.

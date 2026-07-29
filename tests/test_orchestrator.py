@@ -1,4 +1,11 @@
 from airdropbot.collectors.browser import RenderedPage
+from airdropbot.collectors.enrich import (
+    FILLED,
+    NO_URL_REPORTED,
+    OUTCOMES,
+    REJECTED_SOCIAL,
+    UNPARSEABLE_OUTPUT,
+)
 from airdropbot.llm import FakeLLM
 from airdropbot.orchestrator import run_pipeline
 
@@ -136,3 +143,69 @@ def test_pipeline_accumulates_recipes_across_runs(tmp_path):
     _run(tmp_path, _BOTH_SOURCES)
     result = _run(tmp_path, _BOTH_SOURCES)
     assert result["recipes"] == 1  # 같은 entry_url은 upsert
+
+
+def test_pipeline_reports_enrich_outcome_counts(tmp_path):
+    """계측이 요약에 실리지 않으면 관측할 수 없다 (spec §4.4)."""
+    result = _run(tmp_path, list(_BOTH_SOURCES))
+
+    counts = result["enrich"]
+    assert counts[FILLED] == 2, f"두 소스 모두 URL을 캤어야 한다: {counts}"
+    assert sum(counts.values()) >= 2
+
+
+def test_pipeline_enrich_counts_only_declared_outcomes(tmp_path):
+    """선언되지 않은 키가 섞이면 집계가 조용히 어긋난다."""
+    result = _run(tmp_path, list(_BOTH_SOURCES))
+
+    assert set(result["enrich"]) <= set(OUTCOMES)
+
+
+def test_pipeline_records_why_enrichment_failed(tmp_path):
+    """개수만으로는 못 고친다 — 무엇을 거부했는지가 남아야 한다."""
+    responses = [
+        _facts_json("https://airdrops.io/citrea/"),
+        _facts_json("https://icodrops.com/citrea/"),
+        '{"url": "https://twitter.com/citrea"}',   # 앵커링 국면: 소셜 → 거부
+        "이건 JSON이 아니다 citrea.xyz",              # 앵커링 국면: 파싱 실패
+        '{"url": null}',                           # 정찰 국면 재시도: 페이지에 없음
+    ]
+    result = _run(tmp_path, responses)
+
+    counts = result["enrich"]
+    assert counts[REJECTED_SOCIAL] == 1
+    assert counts[UNPARSEABLE_OUTPUT] == 1
+    assert counts[NO_URL_REPORTED] == 1
+    assert FILLED not in counts
+
+    log = {(e["project"], e["outcome"]): e["detail"] for e in result["enrich_log"]}
+    assert ("Citrea", REJECTED_SOCIAL) in log
+    assert "twitter.com" in log[("Citrea", REJECTED_SOCIAL)]
+    assert ("Citrea", UNPARSEABLE_OUTPUT) in log
+
+
+def test_failed_enrichment_is_retried_before_recon(tmp_path):
+    """앵커링 국면에서 실패한 대상은 정찰 직전에 한 번 더 시도된다.
+
+    계측 개수를 읽을 때 이 재시도를 모르면 "왜 후보 수보다 호출이 많은가"를 오해한다.
+    """
+    responses = [
+        _facts_json("https://airdrops.io/citrea/"),
+        _facts_json("https://icodrops.com/citrea/"),
+        '{"url": null}',   # 앵커링 국면 × 2
+        '{"url": null}',
+        _ENRICH_JSON,      # 정찰 국면 재시도 — 여기서 성공
+        _RECIPE_JSON,
+    ]
+    result = _run(tmp_path, responses)
+
+    assert result["enrich"][NO_URL_REPORTED] == 2
+    assert result["enrich"][FILLED] == 1
+    assert result["recipes"] == 1, "재시도로 URL을 얻었으면 정찰까지 가야 한다"
+
+
+def test_pipeline_enrich_log_omits_successes(tmp_path):
+    """성공은 개수로 충분하다. 로그는 고칠 것만 담는다."""
+    result = _run(tmp_path, list(_BOTH_SOURCES))
+
+    assert [e for e in result["enrich_log"] if e["outcome"] == FILLED] == []

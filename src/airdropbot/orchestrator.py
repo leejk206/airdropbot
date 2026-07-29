@@ -6,11 +6,11 @@
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from airdropbot.collectors.browser import render, resolve_redirect
-from airdropbot.collectors.enrich import enrich_source_url
+from airdropbot.collectors.enrich import FILLED, SKIPPED_ALREADY_KNOWN, enrich_source_url
 from airdropbot.collectors.extract import extract_facts
 from airdropbot.execute.guard import Limits
 from airdropbot.execute.runner import run_recipe
@@ -44,8 +44,25 @@ def run_pipeline(
     """
     limits = limits or Limits()
 
+    # enrichment는 앵커 성립의 병목이고 실패가 조용하다. 개수와 이유를 모아 요약에
+    # 싣는다 — 무엇이 얼마나 새는지 모르면 고칠 곳을 정할 수 없다. spec §4.4.
+    enrich_counts: Counter[str] = Counter()
+    enrich_log: list[dict] = []
+
     def enrich(fact: Fact) -> Fact:
-        return enrich_source_url(fact, llm, render_fn=render_fn, resolve_fn=resolve_fn)
+        result = enrich_source_url(fact, llm, render_fn=render_fn, resolve_fn=resolve_fn)
+        enrich_counts[result.outcome] += 1
+        # 성공과 "이미 알고 있음"은 개수로 충분하다. 로그는 고칠 것만 담는다.
+        if result.outcome not in (FILLED, SKIPPED_ALREADY_KNOWN):
+            enrich_log.append(
+                {
+                    "project": fact.project,
+                    "source": fact.source,
+                    "outcome": result.outcome,
+                    "detail": result.detail,
+                }
+            )
+        return result.fact
 
     collected: list[Fact] = []
     for url in sources:
@@ -99,6 +116,8 @@ def run_pipeline(
         "targets": len(targets),
         "recipes": len(recipes),
         "runs": runs,
+        "enrich": dict(enrich_counts),
+        "enrich_log": enrich_log,
     }
 
 

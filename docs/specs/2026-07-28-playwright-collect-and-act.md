@@ -154,6 +154,67 @@ autoinsta는 발행이 비가역 행동이라 council이 발행 앞에 있다. a
 
 §2.3의 툴 차단과 이 가드는 **둘 다 필요하다.** 툴 차단은 모델이 빈 입력을 스스로 메우지 못하게 하고(정직하게 `steps: []`를 반환), 이 가드는 그 무의미한 호출 자체를 아낀다.
 
+### 4.4 enrichment 계측 (2026-07-29 추가)
+
+**왜 필요한가**: 앵커 성립의 병목이 enrichment임이 실측으로 드러났다 (§5.1). 앵커 후보 7건 중 성립 1건이고, 실패는 도메인 충돌이 아니라 **한쪽 소스에서 URL을 못 캐는 것**이었다. 그런데 `enrich_source_url`은 실패 반환 지점이 6개인데 전부 원본 `Fact`를 그대로 돌려준다 — fail-safe이지만 **어디서 샜는지 알 수 없다.** 개선의 상한조차 모르는 상태다.
+
+**규칙**: enrichment는 결과와 함께 **왜 그렇게 됐는지**를 반환한다. fail-safe 계약(예외를 올리지 않고 항상 `Fact`를 돌려준다)은 그대로 유지한다.
+
+**outcome 분류** — 현재 코드가 뭉쳐놓은 것을 분리하는 것이 핵심이다. 뭉쳐 있으면 분포를 봐도 고칠 곳이 안 정해진다.
+
+| outcome | 의미 | 고칠 수 있나 |
+|---|---|---|
+| `filled` | `source_url` 확보 | — |
+| `skipped_no_detail_url` | 상세 페이지 자체가 없다 | 수집 단 문제 |
+| `skipped_already_known` | 이미 URL이 있다 | 정상 |
+| `render_failed` | 상세 페이지 렌더 실패 | 렌더러 (§4.3) |
+| `llm_failed` | LLM 호출 자체가 실패 | 타임아웃·재시도 |
+| `unparseable_output` | LLM이 strict JSON을 안 냈다 | **프롬프트·파싱 (고칠 수 있다)** |
+| `no_url_reported` | LLM이 정상적으로 `{"url": null}` | 페이지에 정말 없다 |
+| `resolve_failed` | 리다이렉트 해소 실패 | 렌더러 |
+| `rejected_social` | 소셜 도메인이라 승격 거부 | 정상 (설계된 거부) |
+| `rejected_aggregator` | 해소했는데 여전히 집계 사이트 | 리다이렉트 룰 |
+| `rejected_no_domain` | 도메인 파싱 불가 | 파싱 |
+
+`unparseable_output`과 `no_url_reported`의 구별이 특히 중요하다. 앞은 우리 잘못이고 뒤는 데이터의 한계다. 1차 라이브에서 enrichment LLM 호출 하나가 412자 산문을 반환한 것을 관측했는데, 현 코드에서는 `{"url": null}`과 구별되지 않고 똑같이 조용히 삼켜졌다.
+
+**거부된 URL·도메인을 함께 남긴다.** 개수만 세면 "무엇을 거부했는지" 모른다.
+
+**집계 위치**: `logging`을 쓰지 않는다. 파이프라인 층(`collectors`/`kb`/`recon`/`orchestrator`)은 데이터를 반환하고 집계는 호출자가 하는 것이 이 레포의 관례이며(`logging`은 cron 엔트리 `daily.py`만 사용), `run_pipeline`이 이미 요약 dict를 반환한다. 그 요약에 outcome 분포(`enrich`)와 실패 상세(`enrich_log`, 성공은 제외)를 싣는다.
+
+**재시도 주의**: orchestrator는 앵커링 국면에서 실패한 대상을 정찰 직전에 한 번 더 enrich한다(§4.1 두 국면). 따라서 **호출 수 > 앵커 후보 수**가 정상이다. 수치를 읽을 때 이걸 모르면 오해한다.
+
+#### 실측 (2026-07-29)
+
+| outcome | 건수 |
+|---|---|
+| **`skipped_no_detail_url`** | **12** |
+| `filled` | 9 |
+| `skipped_already_known` | 1 |
+| `no_url_reported` | 1 |
+| 그 외 전부 | **0** |
+| 총 호출 | 23 |
+
+**계측이 가설을 반증했다.** 계측을 붙이기 전 추정한 주범은 "strict JSON 파싱 실패를 조용히 삼킨다"였는데 `unparseable_output`은 **0건**이었다. `render_failed`·`llm_failed`·`rejected_*`도 전부 0이다.
+
+진짜 병목은 **`detail_url` 자체가 없어서 enrichment가 시작조차 못 하는 것**이다 — 23콜 중 12콜(52%)이 렌더도 LLM 호출도 없이 건너뛰어졌다. 그리고 detail_url이 있을 때 enrichment는 **10번 중 9번 성공한다** (`filled` 9 / `no_url_reported` 1). 메커니즘은 잘 작동하고, 절반의 후보에 대해 아예 호출되지 않는 것이 문제다.
+
+원인은 enrichment가 아니라 **수집 단(`extract_facts`)의 `detail_url` 누락**이고, 소스별로 갈린다:
+
+| 소스 | 팩트 | `detail_url` 있음 | 비율 |
+|---|---|---|---|
+| `freeairdrop.io` | 110 | 110 | **100%** |
+| `icodrops.com` | 24 | 24 | **100%** |
+| `cryptorank.io` | 20 | 20 | **100%** |
+| `airdropalert.com` | 95 | 51 | **54%** |
+| `airdrops.io` | 70 | 34 | **49%** |
+
+(누적 KB 기준. `detail_url` 없는 80건은 `airdrops.io` 36 + `airdropalert.com` 44.)
+
+세 소스는 100%인데 두 소스만 절반이다. 즉 추출 프롬프트나 파이프라인의 일반적 결함이 아니라 **이 두 소스의 리스팅 구조에서 링크를 못 집어내는 문제**다. `airdrops.io`는 상세 링크(`airdrops.io/<project>/`)가 분명히 존재하는데도 49%이므로, 링크가 없는 게 아니라 LLM이 일관되게 못 집는 쪽으로 보인다 — 리스팅 페이지 링크 수(153개)와 `MAX_LINKS` 절단, 프로젝트 대비 링크 밀도를 먼저 봐야 한다.
+
+**다음 조치는 수정이 아니라 또 한 번의 측정이다** — 두 소스의 리스팅 페이지에서 프로젝트당 상세 링크가 실제로 프롬프트에 들어가는지 확인한 뒤에 프롬프트를 손댄다.
+
 ## 5. 데이터 스키마
 
 ### 5.1 KB 팩트 (`cache/kb.yaml`)
@@ -189,9 +250,13 @@ facts:
 >
 > **1차의 `anchored=0`은 룰의 결함이 아니라 굶주림이었다.** `freeairdrop.io`가 렌더 결함으로 팩트 0건이었고(§4.3), 그 소스를 살리자 55 팩트가 유입되어 첫 앵커가 성립했다 — `polymarket.com`을 `freeairdrop.io`와 `icodrops.com`이 동의했다. 따라서 "정족수 룰은 구조적으로 달성 불가"라는 1차 결론은 **철회한다.**
 >
-> 다만 수율은 여전히 얇다: 151개 프로젝트 중 앵커 성립 **1개(0.7%)**. 실패 지점은 도메인 충돌이 아니라 **한쪽 소스에서 URL을 못 캐는 것**이다 — 4건이 한쪽만 확보(arcus/metamask/tradoor0/zeni), 2건은 양쪽 실패(dango/truenorth). `enrich_source_url`이 strict JSON만 받고 어떤 실패든 원본 fact를 그대로 돌려주므로(fail-safe) 조용히 손실된다.
+> 다만 수율은 여전히 얇다: 151개 프로젝트 중 앵커 성립 **1개(0.7%)**. 실패 지점은 도메인 충돌이 아니라 **한쪽 소스에서 URL을 못 캐는 것**이다 — 4건이 한쪽만 확보(arcus/metamask/tradoor0/zeni), 2건은 양쪽 실패(dango/truenorth).
 >
-> **결정 대기**: 하루 앵커 1건이 v2 게이트에 충분한지, 아니면 정족수 근거를 넓힐지(프로젝트 도메인 ↔ 해당 도메인이 공개한 소셜 핸들의 상호참조 등). 며칠 운영해 앵커 성립 추이를 본 뒤 판단한다. 지금 룰을 바꿀 근거는 없다 — 작동하고 있다.
+> **그 원인을 §4.4 계측이 특정했다** — enrichment의 파싱·프롬프트 문제가 아니라(`unparseable_output` 0건), 수집 단에서 **`detail_url`을 못 캐서 enrichment가 시작조차 못 하는 것**이다. `airdrops.io` 49% / `airdropalert.com` 54%만 `detail_url`을 갖는다. detail_url이 있으면 enrichment는 10번 중 9번 성공한다. 즉 **앵커 수율의 상한은 지금 enrichment가 아니라 `detail_url` 커버리지가 정한다.**
+>
+> KB 누적도 수율을 올린다 — 팩트가 쌓이면 교차 소스 일치 기회가 늘어난다. 3차 `anchored=2` → 4차 `anchored=4`.
+>
+> **결정 대기**: 정족수 근거를 넓힐지는 **`detail_url` 커버리지를 올린 뒤에 판단한다.** 병목이 다른 곳인 상태에서 룰을 바꾸면 무엇이 효과를 냈는지 알 수 없다. 지금 룰을 바꿀 근거는 없다 — 작동하고 있고, 굶고 있는 것이다.
 
 **필수 필드**: `id`, `project`, `content`, `source`, `collected_at`.
 **선택 필드**: `detail_url`, `source_url`, `official_url`, `chain`, `tags`, `expires_at`.

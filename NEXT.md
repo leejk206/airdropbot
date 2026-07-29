@@ -70,8 +70,8 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 `icodrops.com`이 동의. spec §5.1 경고문을 정정했다.
 
 수율은 얇다 (151 프로젝트 중 1건). 실패 지점은 도메인 충돌이 아니라 **한쪽 소스에서 URL을
-못 캐는 것**이고, `enrich_source_url`이 파싱 실패를 조용히 삼킨다. 하루 1건이 v2에 충분한지는
-며칠 운영해보고 판단한다 — **지금 룰을 바꿀 근거는 없다.**
+못 캐는 것**이다. 그 원인을 아래 §계측이 특정했다 — 파싱 실패가 아니라 `detail_url` 누락이다.
+**지금 룰을 바꿀 근거는 없다** — 작동하고 있고, 굶고 있는 것이다.
 
 ### 3차 실행 결과 (수정 후)
 
@@ -84,6 +84,49 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 | 레시피 | 7 (2건 환각) | **5 (전건 접지)** |
 | 게이트 거부 사유 | 전부 앵커 부재 | **2건은 `무제한 approve`** ← 2차 방어층 첫 작동 |
 
+### enrichment 계측 완료 — 가설이 반증됐다 (spec §4.4)
+
+`enrich_source_url` → `EnrichResult(fact, outcome, detail)`. `run_pipeline` 요약에
+`enrich`(개수) + `enrich_log`(실패만). 177 passed, ruff clean.
+
+**계측 전 추정한 주범("파싱 실패를 조용히 삼킨다")은 0건이었다.** 진짜 병목:
+
+| outcome | 건수 |
+|---|---|
+| **`skipped_no_detail_url`** | **12** (52%) |
+| `filled` | 9 |
+| `skipped_already_known` / `no_url_reported` | 1 / 1 |
+| `unparseable_output` 및 그 외 전부 | **0** |
+
+`detail_url`이 없으면 enrichment는 렌더도 LLM 호출도 없이 **시작 전에** 건너뛰어진다.
+반대로 **detail_url이 있으면 10번 중 9번 성공한다** — 메커니즘은 건강하고, 절반의 후보에
+아예 호출되지 않는 것이 문제다. 원인은 enrichment가 아니라 **수집 단의 `detail_url` 누락**.
+
+| 소스 | 팩트 | `detail_url` 있음 | 비율 |
+|---|---|---|---|
+| freeairdrop.io / icodrops.com / cryptorank.io | 110 / 24 / 20 | 전량 | **100%** |
+| **airdropalert.com** | 95 | 51 | **54%** |
+| **airdrops.io** | 70 | 34 | **49%** |
+
+세 소스가 100%이므로 추출 프롬프트의 일반적 결함이 아니라 **두 소스의 리스팅 구조** 문제다.
+`airdrops.io`는 상세 링크(`airdrops.io/<project>/`)가 분명히 있는데도 49%다.
+
+4차 실행: `facts=160 anchored=4 targets=10 recipes=6 runs=8`, 638.6s. 앵커 2 → 4건
+(KB 누적이 교차 일치 기회를 늘린다).
+
+### 다음 액션
+
+1. **`detail_url` 커버리지 측정** — 앵커 수율의 상한을 이게 정한다. 다만 **바로 프롬프트를
+   고치지 않는다.** `airdrops.io`·`airdropalert.com` 리스팅에서 프로젝트당 상세 링크가 실제로
+   프롬프트에 들어가는지(링크 153개 vs `MAX_LINKS` 절단, 프로젝트 대비 링크 밀도) 먼저 확인.
+   이번에 가설이 틀린 경험이 이 순서를 지지한다.
+2. 며칠 운영해 앵커 성립 추이 + `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포.
+3. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12). 레시피가 접지되어 있으므로 근거로
+   쓸 수 있다.
+4. **정족수 룰 확장 여부는 `detail_url`을 고친 뒤 판단** — 병목이 다른 곳인 상태에서 룰을
+   바꾸면 무엇이 효과를 냈는지 알 수 없다.
+5. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
+
 ### 잘 작동한 것
 
 - **방어 심층화** — 1차에서 환각 레시피 7건 전부 앵커 부재로 `rejected`. 게이트가 열려
@@ -94,11 +137,11 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
   에어드랍·퀘스트 인터페이스 없음"으로, 1차에선 Alberich/EarnBIT를 "유료 IDO/IEO,
   무료 경로 없음"으로 정확히 분류.
 - **fail-safe 설계** — 결함 3건이 전부 "조용히 건너뛰기"로 떨어져 파이프라인이 죽지 않았다.
-  대가는 조용한 손실이라 계측이 필요하다 (다음 액션 1번).
+  대가는 조용한 손실이었고, 계측을 붙이자 병목이 예상과 다른 곳임이 드러났다.
 
 ---
 
-**마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + 3차 라이브 검증).
+**마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + enrichment 계측 + 라이브 4회).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
 **현재 HEAD**: `d1cdc52` (master, pushed) — 결함 수정 `6cfcfef` + 3차 데이터 `d1cdc52` 커밋 완료.
 working tree clean.
