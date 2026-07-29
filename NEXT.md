@@ -6,7 +6,7 @@
 
 ---
 
-## 0. v1.0 — Playwright 수집 + 행동 포인팅 (`d27f87c` → `6cfcfef` → `d1cdc52`, push 완료)
+## 0. v1.0 — Playwright 수집 + 행동 포인팅 (`d27f87c` → `6cfcfef` → `16e19a4`, push 완료)
 
 - **spec**: `docs/specs/2026-07-28-playwright-collect-and-act.md`
 - **plan**: `docs/plans/2026-07-28-playwright-collect-and-act.md`
@@ -38,7 +38,8 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 ### 상태
 
 - 테스트 **166 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
-- **커밋 완료** — `d27f87c` 구현(36 files, +4425) / `6cfcfef` 결함 수정 / `d1cdc52` 3차 데이터.
+- **커밋 완료** — `d27f87c` 구현(36 files, +4425) / `6cfcfef` 결함 수정 4건 /
+  `16e19a4` enrichment 계측 / `d1cdc52`·`4b276d6` 레시피 데이터.
 - **6소스 전량 라이브 검증 완료 (2026-07-29)** — 832.9s, LLM 30콜. 첫 실데이터 적재:
   `cache/kb.yaml` 45KB(114 팩트), `actions.yaml` 16KB(7 레시피). 결과
   `facts=114 anchored=0 targets=10 recipes=7`, 실행 게이트 **rejected 7/7**.
@@ -143,8 +144,8 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 **마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + enrichment 계측 + 라이브 4회).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `d1cdc52` (master, pushed) — 결함 수정 `6cfcfef` + 3차 데이터 `d1cdc52` 커밋 완료.
-working tree clean.
+**현재 HEAD**: `4b276d6` (master, pushed) — `d27f87c` 구현 / `6cfcfef` 결함 수정 4건 /
+`16e19a4` enrichment 계측 / `d1cdc52`·`4b276d6` 레시피 데이터. working tree clean.
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.
