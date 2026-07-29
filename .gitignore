@@ -9,6 +9,9 @@ build/
 *.egg-info/
 .claude/
 
+# 지갑 브라우저 프로필 — 세션·키 재료가 들어있으므로 절대 커밋 금지
+.wallet_profile/
+
 # cache/logs 디렉토리는 보존, 내용물은 ignore
 cache/*
 !cache/.gitkeep

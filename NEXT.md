@@ -1,10 +1,63 @@
 # NEXT — airdropbot 작업 포인터
 
-**마지막 갱신**: 2026-05-25 KST
-**마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `f7fa79b` (master, origin과 동기화) — v0.10 변경분 미커밋 staged.
+> **2026-07-28 추가**: v1.0 Playwright 파이프라인 구현 완료 (미커밋). 아래 §0 참조.
+> 그 아래 §1~§4는 v0.11 시점 기록으로, 기존 broadcast 경로는 그대로 살아있다.
 
-다음 세션 시작 시 이 파일 + `docs/specs/`의 최신 spec 노트 + `prompts/*.md`만 보면 컨텍스트 복원 가능.
+---
+
+## 0. v1.0 — Playwright 수집 + 행동 포인팅 (2026-07-28, 미커밋)
+
+- **spec**: `docs/specs/2026-07-28-playwright-collect-and-act.md`
+- **plan**: `docs/plans/2026-07-28-playwright-collect-and-act.md`
+- **참조 아키텍처**: `~/projects/autoinsta` 파이프라인 이식 (사용자 지정)
+
+### 구조
+
+```
+collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
+  → kb(팩트 저장/만료 + 교차소스 official_url 합의)
+  → selection → recon(액션 레시피) → execute 게이트(guard → council) [v1 dry-run]
+```
+
+신규 모듈: `models.py`, `llm.py`, `kb/store.py`, `collectors/{browser,extract,enrich}.py`,
+`selection.py`, `recon/{scout,store}.py`, `verify/{council,cache}.py`,
+`execute/{guard,session,runner}.py`, `orchestrator.py`. 기존 `daily.py`/`claude_runner.py`/
+`telegram_post.py`와 프롬프트 자산은 **손대지 않았다**.
+
+### 확정된 정책
+
+- **지갑**: 전용 버너 지갑. 코드가 키를 만지지 않는다 — persistent context 프로필에
+  확장을 두고 사람이 1회 headful 셋업 (`execute/session.py`, autoinsta 이식).
+- **council 위치**: 수집이 아니라 **서명 게이트**. 후보마다 돌리면 ~11분/일이라 타임아웃.
+  Defender 없이 Refuter+Judge 2콜, fail-closed.
+- **앵커링**: `official_url`은 2개 이상 소스 도메인 합의분만. 단일 소스는 실행 불가.
+- **정찰은 앵커 불요** (읽기 전용, 데이터 축적 목적). 실행만 guard가 막는다.
+- **v1은 서명 미실행** — `runner._drive`가 지갑 스텝에서 중단.
+
+### 상태
+
+- 테스트 **147 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
+- 라이브 검증 완료: 6개 소스 렌더 6/6, 177 팩트, 앵커 후보 12개, 레시피 생성·guard 거부 확인.
+- **미커밋** — 사용자 승인 대기 (레포 정책상 자율 커밋 금지).
+
+### 다음 액션
+
+1. 커밋 승인 → spec/plan/구현 묶어서 master push.
+2. **6개 소스 전량 파이프라인 1회 실행** — 2소스만으로는 앵커가 0개. 6소스에서 실제
+   `anchored > 0`이 나오는지, 레시피가 몇 건 쌓이는지 확인.
+3. 며칠 운영해 `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포 집계.
+4. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12).
+5. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
+
+---
+
+**마지막 갱신**: 2026-07-28 KST (§0 추가). 아래 §1~§4 본문은 2026-05-25 v0.11 시점 기록.
+**마지막 작업자**: ljk9121 (leejk206 GitHub identity)
+**현재 HEAD**: `39e9808` (master) — v0.10 + v0.11 커밋 완료. v1.0 Playwright 파이프라인은 미커밋 working tree.
+
+다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
+기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.
+브레인스토밍 전체 흐름은 `~/.claude/plans/2026-07-28-playwright-collect-and-act.md`.
 
 ---
 
