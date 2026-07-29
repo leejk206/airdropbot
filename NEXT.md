@@ -1,11 +1,12 @@
 # NEXT — airdropbot 작업 포인터
 
-> **2026-07-29 갱신**: v1.0 Playwright 파이프라인 **커밋·push 완료** (`d27f87c`). 아래 §0 참조.
+> **2026-07-29 갱신**: v1.0 파이프라인 커밋(`d27f87c`) → 라이브 검증 2회 → 결함 4건 수정
+> (`6cfcfef`) → 3차 데이터(`d1cdc52`) 전부 push 완료. 아래 §0 참조.
 > 그 아래 §1~§4는 v0.11 시점 기록으로, 기존 broadcast 경로는 그대로 살아있다.
 
 ---
 
-## 0. v1.0 — Playwright 수집 + 행동 포인팅 (커밋 `d27f87c`, 2026-07-29 push)
+## 0. v1.0 — Playwright 수집 + 행동 포인팅 (`d27f87c` → `6cfcfef` → `d1cdc52`, push 완료)
 
 - **spec**: `docs/specs/2026-07-28-playwright-collect-and-act.md`
 - **plan**: `docs/plans/2026-07-28-playwright-collect-and-act.md`
@@ -36,9 +37,8 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 ### 상태
 
-- 테스트 **147 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
-- 라이브 검증 완료: 6개 소스 렌더 6/6, 177 팩트, 앵커 후보 12개, 레시피 생성·guard 거부 확인.
-- **커밋 완료** — `d27f87c` (36 files, +4425). spec/plan/구현 단일 번들로 master push.
+- 테스트 **166 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
+- **커밋 완료** — `d27f87c` 구현(36 files, +4425) / `6cfcfef` 결함 수정 / `d1cdc52` 3차 데이터.
 - **6소스 전량 라이브 검증 완료 (2026-07-29)** — 832.9s, LLM 30콜. 첫 실데이터 적재:
   `cache/kb.yaml` 45KB(114 팩트), `actions.yaml` 16KB(7 레시피). 결과
   `facts=114 anchored=0 targets=10 recipes=7`, 실행 게이트 **rejected 7/7**.
@@ -100,9 +100,8 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 **마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + 3차 라이브 검증).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `d27f87c` (master, pushed). **결함 수정분은 미커밋** — `llm.py`,
-`collectors/browser.py`, `recon/scout.py`, `tests/test_browser.py`(신설), spec/plan/NEXT 갱신,
-`actions.yaml`(3차 실데이터). 사용자 승인 대기.
+**현재 HEAD**: `d1cdc52` (master, pushed) — 결함 수정 `6cfcfef` + 3차 데이터 `d1cdc52` 커밋 완료.
+working tree clean.
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.
