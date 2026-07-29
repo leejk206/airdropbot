@@ -1,11 +1,11 @@
 # NEXT — airdropbot 작업 포인터
 
-> **2026-07-28 추가**: v1.0 Playwright 파이프라인 구현 완료 (미커밋). 아래 §0 참조.
+> **2026-07-29 갱신**: v1.0 Playwright 파이프라인 **커밋·push 완료** (`d27f87c`). 아래 §0 참조.
 > 그 아래 §1~§4는 v0.11 시점 기록으로, 기존 broadcast 경로는 그대로 살아있다.
 
 ---
 
-## 0. v1.0 — Playwright 수집 + 행동 포인팅 (2026-07-28, 미커밋)
+## 0. v1.0 — Playwright 수집 + 행동 포인팅 (커밋 `d27f87c`, 2026-07-29 push)
 
 - **spec**: `docs/specs/2026-07-28-playwright-collect-and-act.md`
 - **plan**: `docs/plans/2026-07-28-playwright-collect-and-act.md`
@@ -38,22 +38,23 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 - 테스트 **147 passed**, ruff clean. `playwright>=1.49` 의존성 추가, version 0.7.0 → 1.0.0.
 - 라이브 검증 완료: 6개 소스 렌더 6/6, 177 팩트, 앵커 후보 12개, 레시피 생성·guard 거부 확인.
-- **미커밋** — 사용자 승인 대기 (레포 정책상 자율 커밋 금지).
+- **커밋 완료** — `d27f87c` (36 files, +4425). spec/plan/구현 단일 번들로 master push.
+- **KB 영속 데이터 아직 없음** — `facts.yaml`/`actions.yaml` 미생성. 라이브 검증은 일회성이라
+  누적 데이터가 안 남았다. 아래 다음 액션 1번이 첫 실데이터 적재가 된다.
 
 ### 다음 액션
 
-1. 커밋 승인 → spec/plan/구현 묶어서 master push.
-2. **6개 소스 전량 파이프라인 1회 실행** — 2소스만으로는 앵커가 0개. 6소스에서 실제
+1. **6개 소스 전량 파이프라인 1회 실행** — 2소스만으로는 앵커가 0개. 6소스에서 실제
    `anchored > 0`이 나오는지, 레시피가 몇 건 쌓이는지 확인.
-3. 며칠 운영해 `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포 집계.
-4. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12).
-5. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
+2. 며칠 운영해 `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포 집계.
+3. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12).
+4. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
 
 ---
 
-**마지막 갱신**: 2026-07-28 KST (§0 추가). 아래 §1~§4 본문은 2026-05-25 v0.11 시점 기록.
+**마지막 갱신**: 2026-07-29 KST (v1.0 커밋·push). 아래 §1~§4 본문은 2026-05-25 v0.11 시점 기록.
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `39e9808` (master) — v0.10 + v0.11 커밋 완료. v1.0 Playwright 파이프라인은 미커밋 working tree.
+**현재 HEAD**: `d27f87c` (master, pushed) — v1.0 Playwright 파이프라인 커밋 완료. working tree clean.
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.
@@ -61,7 +62,7 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 ---
 
-## 1. 현재 상태 (v0.11.0, staged 미커밋)
+## 1. 현재 상태 (v0.11.x — 커밋 완료, `39e9808`)
 
 ### 구현 완료 (v0.7 → v0.11 누적)
 - **routine prompts**: `prompts/airdrop_digest.md` (v0.11.0), `prompts/airdrop_pin.md` (v0.11.0).
@@ -85,7 +86,7 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 4. `9790fb7` fix(claude_runner): prompt stdin 전달
 5. `b371bd1` polish: _atomic_write docstring + README v0.6 갱신
 
-### 미커밋 staged (v0.10 + v0.11 묶음)
+### v0.10 + v0.11 묶음 내역 (`7d0db01`·`39e9808`로 커밋됨)
 - `prompts/airdrop_digest.md` (v0.9.0 → v0.11.0): v0.10 변경(§4.5/§5.4/§5.5/§5.8 + 헤더) + v0.11 변경 (§3.2 ROI 별점 룰 전면 rewrite, §3.3 raw 점수 tie-breaker, §4 -1별 폐기, §0 자동 pin 만료 인지, §5.3 prefix 📌+👀 통합, §5.7 dedupe 룰 확장, §5.9 첫 글자 룰 갱신, §7 자동 pin upsert 신설, 헤더 v0.11).
 - `prompts/airdrop_pin.md` (v0.9.0 → v0.11.0): v0.10 변경(§6 snapshot 4종 케이스 + activity_url/official_url 메타) + v0.11 변경(§4 자동 → 수동 승격 룰, §6 yaml 형식에 auto_pinned/tge_date 추가, §remove에 자동 pin 명시 제거 룰, 헤더 v0.11).
 - `tests/test_pinned_schema.py`: OPTIONAL에 `activity_url`, `official_url`, `auto_pinned`, `tge_date` 추가.
