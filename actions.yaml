@@ -115,66 +115,47 @@ recipes:
   reconned_at: '2026-07-29T11:49:54Z'
   verdict: null
 - project: AIW3
-  recipe_hash: sha256:ac254dca2be85f623f39cd9ca923ac3e0a6a32b7f2a3beaf0f4505780b42ddd0
+  recipe_hash: sha256:a4d3c0a2cbf0576e8a7d4d0a52734b8654c8701f58d0e90cb3a0185749d99a28
   entry_url: https://aiw3.ai/
-  chain: null
-  signature_kind: message
+  chain: Solana
+  signature_kind: approve
   approve_unlimited: false
   capital_required_usd: 0.0
   steps:
   - action: goto
     target: https://aiw3.ai/
   - action: click
-    target: Claim Airdrop button (hero CTA)
-  - action: wait
-    target: Airdrop / Launch App dashboard to load
+    target: Claim Airdrop button (hero section)
   - action: wallet_connect
-    target: Connect Wallet button in app header
+    target: Solana wallet connect modal (e.g. Phantom/OKX Wallet)
   - action: wallet_sign
-    target: Login / authentication message signature request
+    target: Sign-in authentication message for aiw3.ai session
   - action: wait
-    target: account registration and task dashboard to load
-  - action: fill
-    target: referral or invite code input (if prompted)
+    target: Airdrop dashboard / eligibility and points balance to load
   - action: click
-    target: Tasks / Airdrop tab
-  - action: click
-    target: Daily check-in task 'Claim' button
-  - action: click
-    target: Social task entries (follow X, join Telegram/Discord) — opens external
-      sites
+    target: Airdrop tab in top navigation
   - action: wait
-    target: external social authorization to complete
+    target: Eligibility check result (points threshold vs. accumulated points)
   - action: click
-    target: Verify button for each completed social task
-  - action: click
-    target: Create API Key (for trading/strategy tasks)
-  - action: fill
-    target: exchange API key and secret fields
-  - action: click
-    target: Trading / strategy task entries and complete required actions
-  - action: wait
-    target: points to accrue and reach redemption threshold
-  - action: click
-    target: Redeem / Claim airdrop button after TGE
+    target: Claim Airdrop Now button
   - action: wallet_approve
-    target: claim transaction confirmation in wallet
+    target: Claim transaction approval in wallet
+  - action: wait
+    target: Claim confirmation / transaction success state
   automatable: partial
   blockers:
-  - Landing page only exposes marketing copy and a 'Claim Airdrop' CTA; the actual
-    task list lives behind the Launch App / Airdrop dashboard and is not visible without
-    connecting a wallet
-  - Task set is heterogeneous (social follow/retweet, daily check-in, invite friends,
-    Academy courses, strategy creation, trading rebates) — social tasks require external
-    OAuth on X/Discord/Telegram and are not automatable
-  - Trading tasks require exchange API keys (AIW3 API key creation) and real trading
-    volume, implying capital beyond zero for the full task set
-  - Chain not stated on the page; TGE and claim contract network unconfirmed
-  - Wallet signature type unverified — connect flow likely requires an off-chain SIWE-style
-    message, and the eventual token claim would require an on-chain transaction
-  - Points thresholds gate the airdrop redemption; eligibility not guaranteed by simply
-    registering
-  reconned_at: '2026-07-29T11:49:54Z'
+  - Claim requires a connected wallet and an on-chain/off-chain signature that cannot
+    be automated without private key access
+  - Eligibility depends on a points threshold accumulated from prior task completion;
+    wallets with no prior AIW3 activity may be ineligible
+  - Token claim is gated by TGE timing (TGE on Aug 3) and a countdown timer on the
+    page
+  - Login/session likely requires a wallet signature-based authentication message
+  - Some point tasks require external accounts (referrals, social, Academy, OKX Boost)
+    outside the site
+  - Exact claim contract/flow is not visible in page text; final claim step must be
+    verified manually
+  reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
 - project: Aligned
   recipe_hash: sha256:0e363178f062a934145036493e49d9cc0ed863bf41c20eaa7989532759961615
@@ -258,94 +239,410 @@ recipes:
   reconned_at: '2026-07-29T11:22:46Z'
   verdict: null
 - project: AIW3
-  recipe_hash: sha256:4be0c4a0a361dede6535ed8a862a3bc042f71e240ca501c7c41e488bec8d187d
+  recipe_hash: sha256:1e366dfae9e1fe50475c4c74be4507c4691dd5ac6ec645926da158fa2132b70a
   entry_url: https://aiw3.ai/airdrop
+  chain: Solana
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 2000.0
+  steps:
+  - action: goto
+    target: https://aiw3.ai/airdrop
+  - action: click
+    target: Connect Wallet button (top-right)
+  - action: wallet_connect
+    target: wallet extension connect prompt
+  - action: wallet_sign
+    target: login/authentication message signature
+  - action: click
+    target: Check Eligibility button
+  - action: wait
+    target: eligibility result panel to load
+  - action: click
+    target: Check in (Daily check-in rewards, +3 Points)
+  - action: click
+    target: Follow button — Newbie Task 'Follow AIW3 on X'
+  - action: wait
+    target: X follow completed in new tab
+  - action: click
+    target: Verify button — 'Follow AIW3 on X' (+10 pts)
+  - action: click
+    target: Repost button — 'Repost official X campaign'
+  - action: wait
+    target: X repost completed in new tab
+  - action: click
+    target: Verify button — 'Repost official X campaign' (+20 pts)
+  - action: click
+    target: Join button — 'Join AIW3 Telegram'
+  - action: wait
+    target: Telegram group join completed
+  - action: click
+    target: Verify button — 'Join AIW3 Telegram' (+10 pts)
+  - action: click
+    target: Join Now — 500,000 $AIW3 0G Ecosystem Airdrop Campaign banner
+  - action: click
+    target: Predict button — 'Complete 1 prediction daily' task
+  - action: wallet_approve
+    target: USDT/token spending approval for prediction market contract
+  - action: wallet_sign
+    target: prediction market entry transaction
+  - action: click
+    target: Predict button — repeat until 3 predictions today (+50 pts)
+  - action: click
+    target: Create button — 'Publish strategy to plaza'
+  - action: fill
+    target: strategy creation form fields (name, parameters)
+  - action: click
+    target: Publish to Strategy Plaza
+  - action: click
+    target: Trade button — 'Trading volume reward' task
+  - action: wallet_approve
+    target: USDT spending approval for trading contract
+  - action: wallet_sign
+    target: trade execution transaction (repeat to reach ≥2000 USDT daily volume for
+      3 consecutive days)
+  - action: click
+    target: Invite tab / Referral — copy referral link for 'Invite 1 friend to predict
+      daily'
+  - action: wait
+    target: TGE on Aug 3 countdown to finish
+  - action: goto
+    target: https://aiw3.ai/airdrop
+  - action: click
+    target: Claim Airdrop button
+  - action: wallet_sign
+    target: claim transaction confirmation in wallet
+  - action: click
+    target: OKX Boost entry (post-TGE, optional additional allocation)
+  automatable: partial
+  blockers:
+  - Initial airdrop snapshot already taken on Jul 28 — late wallets may be ineligible
+    for the snapshot portion
+  - Eligibility Confirmation window runs from Jul 29; claim only opens at TGE on Aug
+    3
+  - Newbie tasks require linked X (Twitter) and Telegram accounts plus manual 'Verify'
+    confirmation after off-site follow/repost/join
+  - Social task verification is server-side and rate-limited/anti-bot; cannot be reliably
+    scripted
+  - Daily prediction tasks require funded participation in prediction markets
+  - Trading volume and 3-day streak milestones require ≥2000 USDT daily volume, i.e.
+    real capital and market risk
+  - OKX Boost portion only launches after TGE and requires a separate OKX exchange
+    account
+  - Claim transaction requires wallet signature and gas on the deployment chain
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: AIW3
+  recipe_hash: sha256:f989e56d5169215c2364a5b12a6416d4044a157076e9709514383411da789df4
+  entry_url: https://aiw3.ai/?userInviteCode=REF2DL8L
+  chain: BSC
+  signature_kind: message
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://aiw3.ai/?userInviteCode=REF2DL8L
+  - action: click
+    target: '''Claim Airdrop'' 버튼 (히어로 섹션)'
+  - action: wait
+    target: Connect 지갑 모달 노출
+  - action: click
+    target: Network 선택 'BSC'
+  - action: wallet_connect
+    target: OKX Wallet / MetaMask / Binance Wallet / Gate Wallet / Bitget Wallet 중
+      택1
+  - action: fill
+    target: Invitation code(Optional) 입력란에 'REF2DL8L'
+  - action: wallet_sign
+    target: 로그인용 메시지 서명 요청 (SIWE 형식 추정)
+  - action: wait
+    target: 에어드랍 대시보드 로딩 및 포인트 현황 표시
+  - action: click
+    target: '''Complete Tasks'' 섹션 진입'
+  - action: click
+    target: 각 태스크 항목 (초대 / 거래 리베이트 / 전략 가이드 / Academy 코스 / 전략 생성) 순차 수행
+  - action: click
+    target: '''Create API Key'' 버튼 (Skills 연동 태스크 수행 시)'
+  - action: wait
+    target: 포인트 적립 반영
+  - action: click
+    target: '''Claim Airdrop Now'' 버튼 (포인트 임계값 충족 시)'
+  - action: wallet_approve
+    target: 클레임 트랜잭션 승인 (BSC 가스비 필요, 클레임 컨트랙트 상호작용 시)
+  automatable: partial
+  blockers:
+  - 스냅샷이 이미 진행된 화이트리스트형 활동 — 신규 참여자는 소급 적격이 아닐 수 있음
+  - TGE가 8월 3일로 예정되어 있고 카운트다운이 약 1일 5시간 남아 참여 마감 임박
+  - 포인트 임계값 도달이 에어드랍 수령 조건이며, 임계값 수치가 페이지에 명시되지 않음
+  - 주요 태스크(초대, 거래 리베이트, 전략 생성, Academy 수강)가 다단계·계정 기반이라 자동화 범위 밖
+  - API 키 발급 및 외부 AI 어시스턴트(OpenClaw/Claude Code/Cursor)에 스킬 설치가 필요한 태스크가 포함됨
+  - OKX Boost 연동 등 외부 플랫폼 계정이 별도로 요구될 수 있음
+  - 지갑 연결 후 실제 서명 문구/트랜잭션 요구 여부는 앱 진입 전 확인 불가
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: Abstract
+  recipe_hash: sha256:4e225ef865edfe63a7cb5600a562e158f23a6fe185e53e994c8ec85757c84511
+  entry_url: https://abs.xyz/
+  chain: Abstract
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 10.0
+  steps:
+  - action: goto
+    target: https://abs.xyz/
+  - action: click
+    target: Add Network to Wallet
+  - action: wallet_approve
+    target: Wallet prompt to add/switch to the Abstract network
+  - action: click
+    target: Enter Portal
+  - action: wait
+    target: Portal login screen at portal.abs.xyz
+  - action: wallet_connect
+    target: Connect wallet / create Abstract Global Wallet (email, social, or passkey
+      login)
+  - action: wallet_sign
+    target: Sign-in message to authenticate the session with the Portal
+  - action: goto
+    target: https://abs.xyz/ then click Bridge Funds
+  - action: wait
+    target: Bridge page load (bridge.abs.xyz)
+  - action: wallet_connect
+    target: Connect source-chain (Ethereum mainnet) wallet on the bridge
+  - action: fill
+    target: Bridge amount field — approximately 0.003 ETH (~$10)
+  - action: wallet_approve
+    target: Token/bridge contract approval if bridging an ERC-20 instead of native
+      ETH
+  - action: wallet_sign
+    target: Confirm the L1 deposit transaction to bridge funds to Abstract
+  - action: wait
+    target: Deposit finalization and balance appearing on Abstract (several minutes)
+  - action: click
+    target: Explore Portal / Discover section to browse ecosystem apps
+  - action: click
+    target: A spotlight app (e.g. Moonsheep Space Exploration or Gigling Racing) 'Visit'
+      button
+  - action: wallet_connect
+    target: Connect Abstract Global Wallet to the ecosystem app
+  - action: wallet_sign
+    target: Perform at least one onchain interaction in the app (mint, trade, or game
+      action) to record mainnet activity
+  - action: click
+    target: Portal social/profile section — link X/Twitter account
+  - action: goto
+    target: https://x.com/abstractchain
+  - action: click
+    target: Follow
+  - action: goto
+    target: Abstract Discord invite linked in the site footer
+  - action: click
+    target: Join server and complete verification
+  - action: wait
+    target: Repeat Portal browsing, streaming, and onchain app interactions periodically
+      to accumulate activity
+  automatable: partial
+  blockers:
+  - No explicit airdrop or points program is announced on abs.xyz; the airdrop is
+    speculative and eligibility criteria are unpublished
+  - Portal access historically gated by an invite code / Abstract Global Wallet creation
+    which may require social (X) login and cannot be reliably automated
+  - Abstract Global Wallet onboarding uses passkey/email/social auth flows that are
+    not automatable headlessly
+  - Bridging funds from L1 requires pre-funded ETH on Ethereum mainnet and incurs
+    variable gas
+  - Social activity (X follow, Discord join) requires human-owned accounts and is
+    subject to anti-bot enforcement
+  - Streaming/badge/reward mechanics inside the Portal are dynamic and may change
+    without notice
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: GRVT
+  recipe_hash: sha256:203075510b9bbaf4c1728c19bd0250fc413300b7cc69743ed9faf227b6c366ec
+  entry_url: https://grvt.io/
+  chain: Grvt zkSync Hyperchain (ZK Stack, Ethereum L2)
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 50.0
+  steps:
+  - action: goto
+    target: https://grvt.io/
+  - action: click
+    target: '''Sign up'' button in the top-right navigation (or ''Log in'' if an account
+      already exists)'
+  - action: fill
+    target: Email address and password fields in the signup form; submit and complete
+      email verification
+  - action: wait
+    target: Redirect to the authenticated Grvt app dashboard (app/exchange view) to
+      load
+  - action: wallet_connect
+    target: Connect Wallet / Link wallet control in the Grvt account or deposit panel
+      (MetaMask / WalletConnect)
+  - action: wallet_sign
+    target: Sign the Grvt account-binding / authentication message requested on wallet
+      link (SIWE-style login signature, no gas)
+  - action: click
+    target: '''Deposit'' in the Grvt account panel and select USDT/USDC plus the source
+      chain'
+  - action: wallet_approve
+    target: ERC-20 approve of the exact USDT/USDC deposit amount to the Grvt deposit/bridge
+      contract (do not grant unlimited allowance)
+  - action: wallet_sign
+    target: Confirm the deposit/bridge transaction to fund the Grvt trading account
+      (gas required)
+  - action: wait
+    target: Deposit credited to Grvt balance and account fully activated
+  - action: click
+    target: Airdrop / Rewards / Points entry point in the app navigation or the 'Competitions'
+      section to locate the claim page
+  - action: click
+    target: '''Claim'' button on the airdrop page to claim the allocated tokens'
+  - action: wallet_sign
+    target: Sign or confirm the claim transaction / claim authorization prompted by
+      the Grvt claim flow
+  - action: wait
+    target: Claim confirmation and token balance appearing in the Grvt account or
+      destination wallet
+  automatable: manual
+  blockers:
+  - Landing page contains no airdrop/claim UI — no CLAIM LIVE element, no reward or
+    points section is present in the fetched page text; the claim flow could not be
+    located or verified
+  - Account creation is mandatory (Sign up / Log in gate) before any wallet or claim
+    interaction
+  - 'Centralized-style onboarding: email/social signup plus likely KYC or region restrictions,
+    and possibly an invite/referral code'
+  - Session-bound authenticated dashboard state cannot be reliably driven headlessly;
+    Cloudflare/anti-bot protection is likely on grvt.io
+  - Claim almost certainly requires depositing USDT/USDC to a Grvt trading account
+    and an ERC-20 approve plus bridge deposit transaction (gas + capital)
+  - Eligibility is snapshot-based on prior trading volume/points — cannot be earned
+    or triggered at claim time
+  - Token contract, claim contract address, and claim deadline are unknown from this
+    page
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: GRVT
+  recipe_hash: sha256:abc6be3a211f0c2bfe5383c11781ee6adb74204484594560d78b68cbb10cc26d
+  entry_url: https://grvt.io/exchange/sign-up?ref=WRNRM40
+  chain: zkSync Era (GRVT L2)
+  signature_kind: message
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://grvt.io/exchange/sign-up?ref=WRNRM40
+  - action: wait
+    target: Sign up form to load ('SIGN UP TO GRVT')
+  - action: click
+    target: '''MetaMask'' button under ''or continue with wallets'''
+  - action: wallet_connect
+    target: MetaMask wallet connection prompt
+  - action: wallet_sign
+    target: Sign-in message to create/authenticate self-custody trading account
+  - action: wait
+    target: Account creation to complete and redirect to exchange dashboard
+  - action: fill
+    target: Email address field (if prompted for account recovery/notifications)
+  - action: click
+    target: '''Continue'' button to submit'
+  - action: wait
+    target: Email verification code prompt
+  - action: fill
+    target: Email verification code (OTP) input
+  - action: click
+    target: '''Confirm'' / ''Continue'' button to verify'
+  - action: wait
+    target: Referral code WRNRM40 confirmed as applied in account settings
+  automatable: partial
+  blockers:
+  - Referral sign-up may be invite/waitlist gated depending on region
+  - Email or wallet account creation requires OTP/email verification not visible on
+    page
+  - Wallet signature required to create self-custody trading account (SIWE-style message)
+  - Geo-restrictions apply to certain jurisdictions; KYC may be required for deposits/withdrawals
+  - Whitelist/airdrop eligibility likely depends on trading volume or deposits, which
+    are not covered by sign-up alone
+  - CAPTCHA / anti-bot protection possible on sign-up flow
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: KOR Protocol
+  recipe_hash: sha256:a42dd3ad17ec1871d4d78353650c17d01c53096ed47ae84e8cb0a7576c8210c3
+  entry_url: https://www.korprotocol.io/
+  chain: null
+  signature_kind: message
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://www.korprotocol.io/
+  - action: click
+    target: Get your $KOR ID button (hero or footer)
+  - action: wait
+    target: KOR ID registration page to load on external subdomain
+  - action: wallet_connect
+    target: Connect Wallet button on KOR ID page
+  - action: wallet_sign
+    target: Sign-in authentication message (SIWE-style login signature)
+  - action: fill
+    target: KOR ID registration fields (handle/username, email if required)
+  - action: click
+    target: Submit / Claim KOR ID button
+  - action: wait
+    target: Registration confirmation and profile/dashboard view
+  - action: click
+    target: Any incentive/quest or points section if exposed after ID creation
+  automatable: partial
+  blockers:
+  - No token or airdrop is live yet — page states "KOR is live. The token is coming.";
+    the only actionable item is claiming a $KOR ID
+  - KOR ID flow lives on an external subdomain ("KOR ID ↗" link) whose exact URL,
+    chain, and auth method are not visible from this page
+  - Unclear whether KOR ID requires wallet connect, email/social login, or both; signature
+    type is an assumption
+  - No published eligibility criteria, task list, or points dashboard for the incentive
+    activity started 2026-07-07
+  - Possible captcha/social account linking (e.g. X, Discord) during ID registration
+  reconned_at: '2026-08-01T09:53:14Z'
+  verdict: null
+- project: KOR Protocol
+  recipe_hash: sha256:d91bf2061a87c9d56877963abaeb340581a5c3c9f1439580933ae5d0dd35b0d5
+  entry_url: https://korprotocol.io/
   chain: null
   signature_kind: approve
   approve_unlimited: false
   capital_required_usd: 0.0
   steps:
   - action: goto
-    target: https://aiw3.ai/airdrop
+    target: https://korprotocol.io/
   - action: click
-    target: Connect Wallet / 'Check Eligibility' button
+    target: Get your $KOR ID button (hero or footer CTA)
+  - action: wait
+    target: KOR ID registration app to load
   - action: wallet_connect
-    target: wallet provider modal (browser wallet)
-  - action: wallet_approve
-    target: site connection / eligibility verification prompt in wallet
-  - action: wait
-    target: eligibility result panel to load
-  - action: click
-    target: Check in (Daily check-in rewards, +3 pts)
-  - action: wait
-    target: check-in confirmation toast
-  - action: click
-    target: Follow button - 'Follow AIW3 on X' task
-  - action: wait
-    target: 'X (twitter.com) tab: follow @AIW3_io'
-  - action: click
-    target: Verify button - 'Follow AIW3 on X' task (+10 pts)
-  - action: click
-    target: Repost button - 'Repost official X campaign' task
-  - action: wait
-    target: 'X tab: repost featured AIW3 campaign post'
-  - action: click
-    target: Verify button - 'Repost official X campaign' task (+20 pts)
-  - action: click
-    target: Join button - 'Join AIW3 Telegram' task
-  - action: wait
-    target: 'Telegram tab: join official AIW3 TG group'
-  - action: click
-    target: Verify button - 'Join AIW3 Telegram' task (+10 pts)
-  - action: click
-    target: Predict button - 'Complete 1 prediction daily' task
-  - action: fill
-    target: prediction market entry amount field
-  - action: wallet_approve
-    target: prediction market transaction/approval in wallet
-  - action: wait
-    target: prediction confirmation (+20 pts)
-  - action: click
-    target: Predict button - repeat until 3 predictions today (+50 pts)
-  - action: click
-    target: Invite button - 'Invite 1 friend to predict daily' (copy referral link)
-  - action: click
-    target: Create button - 'Publish strategy to plaza' task
-  - action: fill
-    target: strategy creation form fields
-  - action: click
-    target: Publish to Strategy Plaza (+20 pts)
-  - action: click
-    target: Trade button - 'Trading volume reward' task
-  - action: fill
-    target: trade order size field (>=1000 USDT per +20 pts)
-  - action: wallet_approve
-    target: token spending approval for trading (exact amount, not unlimited)
+    target: Connect Wallet on KOR ID app
   - action: wallet_sign
-    target: trade order confirmation in wallet
-  - action: wait
-    target: TGE on Aug 3 (countdown on page)
-  - action: goto
-    target: https://aiw3.ai/airdrop
+    target: Sign-in / ownership verification message
+  - action: fill
+    target: KOR ID profile fields (handle, email, social links) if prompted
   - action: click
-    target: Claim Airdrop button
+    target: Create / Claim KOR ID submit button
   - action: wallet_approve
-    target: claim transaction in wallet
-  automatable: manual
+    target: Approve any on-chain registration or claim transaction if prompted
+  - action: wait
+    target: Confirmation that KOR ID is minted and whitelist/reward status shows claimed
+  automatable: partial
   blockers:
-  - Airdrop is in the Eligibility Confirmation phase (Jul 29 - Aug 3); claim only
-    opens at TGE on Aug 3, so the flow cannot be completed end-to-end now
-  - 'Newbie tasks require external accounts: X (follow @AIW3_io, repost campaign)
-    and Telegram group join, each with a separate ''Verify'' callback'
-  - Social task verification depends on third-party OAuth/anti-bot checks that cannot
-    be reliably automated
-  - Daily tasks require participating in prediction markets (on-chain/off-chain funds
-    not disclosed on page)
-  - Strategy Incentives require real trading volume (+20 pts per 1000 USDT traded;
-    milestone needs 3 consecutive days at >=2000 USDT/day)
-  - Invite task depends on a third party (invited friend must complete a prediction)
-  - Chain not stated on the page; token/claim contract unknown until TGE
-  - Wallet connect/eligibility check may require a signature prompt handled by the
-    wallet extension
-  reconned_at: '2026-07-29T11:49:54Z'
+  - Landing page shows no claim/whitelist UI — only a 'Get your $KOR ID' CTA; token
+    is explicitly 'coming', so reward claim may not be live on this domain
+  - KOR ID registration happens on an external linked site (KOR ID ↗), flow and required
+    fields not visible from this page
+  - Likely requires social/email account linking or identity verification during KOR
+    ID signup
+  - Chain and contract for any claim are undisclosed; signature type cannot be confirmed
+    without reaching the KOR ID app
+  - Possible whitelist eligibility gate (prior 285k NFT mint / 1M sign-up cohort)
+    that cannot be satisfied retroactively
+  reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
