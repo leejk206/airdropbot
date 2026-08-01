@@ -409,9 +409,14 @@ routine은 중단하지 않고 계속 진행.
 
 해당 항목의 TGE 일자 정보를 **§4.5 C의 `tge` 추출 결과**에서 회수 (v1.1 — 리스팅이 아니라 detail page가 유일한 근거). §4.5를 건너뛴 항목(`detail_url` null)은 TGE 미상으로 취급.
 
-- **TGE 일자 명시 (`YYYY-MM-DD` 또는 `YYYY-MM` 형태)**: `expires_at = <그 일자> 23:59:59 Asia/Seoul`. `tge_date = "YYYY-MM-DD"`.
+- **TGE 일자 명시 (`YYYY-MM-DD` 또는 `YYYY-MM` 형태)이고 그 일자가 `pinned_at`보다 미래**: `expires_at = <그 일자> 23:59:59 Asia/Seoul`. `tge_date = "YYYY-MM-DD"`.
+- **TGE 일자가 명시됐으나 이미 지났음 (`<= pinned_at`)**: `expires_at = pinned_at + 60일`. `tge_date`는 **관측값 그대로 유지**한다(정보를 버리지 않는다).
+  근거: TGE가 지났어도 청구 창구는 열려 있는 경우가 많아 watchlist에서 즉시 내릴 이유가 없다. 반면 `expires_at`을 과거로 두면 **핀이 생성 즉시 만료 상태**가 되어 §0 정리에 바로 지워지고, `expires_at >= pinned_at` 스키마 불변식도 깨진다.
+  (v1.1 실측에서 드러남 — 배선 전에는 TGE가 부정확해 대부분 TBA로 정규화되며 이 분기를 안 탔다. detail page에서 정확한 TGE를 받게 되자 과거 일자가 그대로 흘러들어왔다.)
 - **TGE TBA / 미정 / 없음**: `expires_at = pinned_at + 60일`. `tge_date = null`.
 - **cryptorank stale 가드 (§3.3) 적용 후**: stale로 normalize된 항목은 TGE TBA로 취급 → 60일 default.
+
+**불변식**: 어떤 분기에서도 `expires_at > pinned_at`이어야 한다. `tests/test_pinned_schema.py`가 이를 검증한다.
 
 #### 7.4 yaml 레코드 형식
 
