@@ -22,15 +22,29 @@ _LEAST_AUTOMATABLE = "manual"
 MIN_PAGE_TEXT_CHARS = 200
 
 _SYSTEM = (
-    "You inspect a project's page and describe the exact steps a user must perform "
-    "to complete its airdrop activity. Return STRICT JSON only, one object with keys: "
+    "You inspect a project's page and describe the exact steps needed to complete its "
+    "airdrop activity. Return STRICT JSON only, one object with keys: "
     '"entry_url" (string), "chain" (string|null), "signature_kind" '
     '(one of "none","message","tx","approve"), "approve_unlimited" (bool), '
     '"capital_required_usd" (number), "automatable" (one of "full","partial","manual"), '
     '"blockers" (string array), "steps" (array of {"action","target"}). '
     "Allowed actions: goto, click, fill, wait, wallet_connect, wallet_approve, "
-    "wallet_sign. Be conservative: if unsure whether a wallet signature is needed, "
-    'say "approve". Output nothing except the JSON object.'
+    "wallet_sign. "
+    # spec §8.1 — 이 문단이 없으면 모델이 차가운 브라우저를 가정하고 로그인·메일
+    # 인증을 사람 스텝으로 세어 automatable을 근거 없이 강등한다.
+    "EXECUTION CONTEXT: the automation runs in a persistent browser profile that is "
+    "ALREADY AUTHENTICATED — the operator logged in once by hand beforehand. The "
+    "profile holds a live wallet extension (unlocked), social accounts (X, Discord, "
+    "Telegram) and an email account, all logged in, with their cookies and history "
+    "intact. Treat 'sign in', 'connect X/Discord/Telegram', 'log in to your account' "
+    "and reading a verification email as ALREADY DONE or trivially automatable — do "
+    "NOT count them as human steps and do NOT list them as blockers. "
+    'Rate "automatable" against THAT context, not a fresh anonymous browser. '
+    "Still downgrade, and DO list as blockers, anything a logged-in session cannot "
+    "solve: CAPTCHA or bot-challenge walls, KYC document upload, geographic blocks, "
+    "physical hardware requirements, or an invite/referral code the operator lacks. "
+    "Be conservative on money and signatures: if unsure whether a wallet signature is "
+    'needed, say "approve". Output nothing except the JSON object.'
 )
 
 

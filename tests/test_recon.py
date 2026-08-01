@@ -107,6 +107,41 @@ def test_scout_coerces_unknown_automatable_to_manual():
     assert scout_recipe(_FACT, _PAGE, FakeLLM([raw]), now="x").automatable == "manual"
 
 
+# --- warm 인증 세션 전제 (spec §8.1) ----------------------------------------
+#
+# 실행 컨텍스트는 사람이 1회 로그인해둔 persistent profile이다. 프롬프트가 이걸
+# 안 알려주면 모델이 차가운 브라우저를 가정해 "Sign in with X"·"인증 메일 열기"를
+# 사람 스텝으로 세고 automatable을 강등한다 — §12.1의 full=0이 그렇게 나왔다.
+
+
+def test_scout_prompt_declares_warm_session():
+    llm = FakeLLM([_GOOD])
+    scout_recipe(_FACT, _PAGE, llm, now="x")
+    system = llm.calls[0][0].lower()
+
+    # 이미 로그인돼 있다는 사실이 프롬프트에 있어야 한다.
+    assert "logged in" in system or "already authenticated" in system
+    for account in ("wallet", "email", "social"):
+        assert account in system
+
+
+def test_scout_prompt_still_demands_downgrade_for_human_only_gates():
+    """세션으로 해소되지 않는 것(캡차·KYC)은 여전히 강등 사유여야 한다."""
+    llm = FakeLLM([_GOOD])
+    scout_recipe(_FACT, _PAGE, llm, now="x")
+    system = llm.calls[0][0].lower()
+
+    for gate in ("captcha", "kyc"):
+        assert gate in system
+
+
+def test_scout_keeps_conservative_coercion_under_warm_session():
+    """세션 전제를 넣었다고 보수적 강등 규칙이 풀리면 안 된다 (spec §4 대전제)."""
+    unknown = _GOOD.replace('"automatable": "full"', '"automatable": "obviously-fine"')
+    r = scout_recipe(_FACT, _PAGE, FakeLLM([unknown]), now="x")
+    assert r.automatable == "manual"
+
+
 def test_scout_tolerates_json_fence():
     r = scout_recipe(_FACT, _PAGE, FakeLLM([f"```json\n{_GOOD}\n```"]), now="x")
     assert r.entry_url == "https://citrea.xyz/faucet"
