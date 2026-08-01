@@ -115,17 +115,82 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 4차 실행: `facts=160 anchored=4 targets=10 recipes=6 runs=8`, 638.6s. 앵커 2 → 4건
 (KB 누적이 교차 일치 기회를 늘린다).
 
+### `detail_url` 커버리지 측정 완료 — 원인은 둘이었다 (2026-08-01, spec §4.5)
+
+측정 스크립트로 절단 **전** 링크 전량을 관찰하고 KB 실데이터와 대조했다.
+
+| 소스 | 전체 링크 | 고유 상세 링크 | 앞 80 내 | **상한** | KB 실측 |
+|---|---|---|---|---|---|
+| `airdrops.io` | 155 | 38 | 21 | **55%** | **49%** |
+| `airdropalert.com/farm` | 87 | **0** | 0 | **0%** | 54%(허위) |
+| `freeairdrop.io` | 109 | 53 | 53 | 100% | 100% |
+| `icodrops.com` | 110 | 53 | 47 | 89% | 100% |
+
+**A. `airdrops.io` = 프롬프트 링크 절단.** `extract.py`가 앞 80개만 넣는데, 상세 링크는
+index 1~147에 분포하고 **중앙값이 73** — 절단선에 정확히 걸쳐 있다. 검증: KB에 채워진 것 중
+오늘도 존재하는 13건은 **13/13 전부 idx<80**, 페이지에 있는데 안 채워진 25건 중 17건이
+idx≥80. 대조군 두 소스가 100%인 이유도 품질이 아니라 **안 잘렸기 때문**이었다.
+→ `MAX_LINKS_IN_PROMPT = MAX_LINKS`로 수정. **실측 49% → 100%** (30/30), 그중 **20건이
+이전엔 프롬프트에 들어갈 수조차 없던 idx≥80 구간**에서 나왔다. 180 passed, ruff clean.
+
+**B. `airdropalert.com/farm` = 소스 문제 (코드 아님).** 링크 87개뿐이라 절단을 안 겪는다.
+대신 **per-project 상세 페이지가 아예 없다** — 21개가 `browse-airdrops/?category=…`(고유 9개)
+카테고리 필터고 나머지는 거래소 제휴 링크다. KB의 51건은 **전부 허위**(리스팅 41 + 제휴 10),
+실질 커버리지는 **0%**. 오염 검사: 이 41건에서 승격된 `source_url`은 **0건** — §4.1 도메인
+검사가 막았고 대가는 호출 낭비뿐이었다.
+
+`MAX_LINKS=300`·`MAX_TEXT_CHARS=20000`은 어느 소스에서도 바인딩되지 않아 안 건드렸다.
+
+### 5차 라이브 (2026-08-01) — 링크 수정의 효과가 전 구간으로 전파됐다
+
+915.0s, `facts=193 anchored=15 targets=10 recipes=12`.
+
+| 지표 | 4차 | **5차** |
+|---|---|---|
+| `skipped_no_detail_url` | 12 (52%) | **0** |
+| `filled` (source_url 확보) | 9 | **22** |
+| 앵커 팩트 / 프로젝트 | 4 / 2 | **15 / 7** |
+| 레시피 누적 | 6 | **12** |
+| detail_url 100% 소스 | 3/5 | **5/5** |
+
+앵커: AIW3, Abstract, GRVT, KOR Protocol, MoonPay, Polymarket, Renaiss Protocol.
+**7개 중 6개가 `cryptorank.io` 다리** (`airdrops.io`×`cryptorank.io` 5건).
+
+**게이트 거동이 처음 바뀌었다** — 규칙 1(앵커 부재)이 더 이상 지배적 거부 사유가 아니고,
+**규칙 6(`pointing_only`)이 처음 도달**(5건). 나머지 5건은 규칙 3(자본 상한 $0).
+
+**council 예측은 빗나갔다** (`anchored ≤ 4` 예상 / 실측 15). 원인: "multi-source 9개 중 8개가
+airdropalert 다리"를 **누적 KB**에서 계산했는데 앵커링은 **런 단위**로 돈다. 게다가 겹침 집합을
+고정으로 취급한 게 오류였다 — 링크 수정이 각 소스가 *무엇을 뽑는지*를 바꿨다. 전문은
+`docs/council/2026-08-01-v1-pipeline-improvements.md` (status: miss).
+
+**살아남은 진단**: `airdropalert.com`은 detail_url 49/49(100%)인데 `source_url` **0/49**.
+그리고 `automatable: full`은 **레시피 12건에서도 0건**이다.
+
+### 축적 루프 수리 (2026-08-01, spec §5.1.1 + §5.4)
+
+council이 지목한 세 결함 중 둘을 고쳤다. 193 passed (180 + 신규 13), ruff clean.
+
+1. **`_fact_id`가 LLM 요약을 해싱**해서 KB가 매 실행 자기를 복제했다 (507 팩트 = 227의 중복).
+   → `(source, project)`만의 함수로. **`put()` 병합이 필수 짝** — 없이 id만 고치면 재추출본이
+   enrichment 결과를 매일 null로 덮어써서 회귀한다. 마이그레이션 **507 → 227**, 정보 손실 0건.
+2. **정찰 대상 선정이 알파벳순으로 붕괴**했다 (`expires_at`이 전건 null이라 2차 키가 상수).
+   → 프로젝트 dedupe + URL 보유 대표 선택 + 기정찰 후순위 로테이션 + 소스 수 tie-break.
+   **고유 정찰 대상 4 → 10.**
+
+**미수정 (council 지적)**: 앵커링이 누적 KB를 안 본다(`orchestrator.py`가 `resolve_official_urls`를
+`FactStore.load`보다 먼저 실행). spec §5.1에 정정만 기록했고 코드는 안 건드렸다.
+
 ### 다음 액션
 
-1. **`detail_url` 커버리지 측정** — 앵커 수율의 상한을 이게 정한다. 다만 **바로 프롬프트를
-   고치지 않는다.** `airdrops.io`·`airdropalert.com` 리스팅에서 프로젝트당 상세 링크가 실제로
-   프롬프트에 들어가는지(링크 153개 vs `MAX_LINKS` 절단, 프로젝트 대비 링크 밀도) 먼저 확인.
-   이번에 가설이 틀린 경험이 이 순서를 지지한다.
-2. 며칠 운영해 앵커 성립 추이 + `actions.yaml` 누적 → 체인·`signature_kind`·`automatable` 분포.
-3. 그 데이터로 v2 allowlist 작성 → 게이트 개방 (spec §12). 레시피가 접지되어 있으므로 근거로
-   쓸 수 있다.
-4. **정족수 룰 확장 여부는 `detail_url`을 고친 뒤 판단** — 병목이 다른 곳인 상태에서 룰을
-   바꾸면 무엇이 효과를 냈는지 알 수 없다.
+1. **6차 라이브** — 3·4번의 효과는 **아직 라이브에서 안 봤다.** 5차는 수정 **전** 코드로 돌았다.
+   고유 10개 정찰이 레시피 축적률로 실제 이어지는지 확인.
+2. **`automatable: full`이 0인 것이 유일하게 남은 §12 차단 요인**이다. 표본 12에서도 0.
+   n≈100까지 늘려도 0이면 실행 트랙을 접고 Track A용 수집기로 재정의하는 판단이 필요하다.
+3. **`airdropalert.com` 소스 결정 (사용자 몫)** — detail_url 100%인데 `source_url` 0%가
+   재확인됐다. (a) URL 교체 (b) detail_url 비대상 명시.
+4. **엔트리포인트 + cron 미등록** (council 1·2번, 사용자 미선택) — `run_pipeline` 호출자가
+   `tests/`뿐이고 crontab이 비어 있다. Track A도 2026-05-25 이후 안 돈다.
 5. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
 
 ### 잘 작동한 것
@@ -142,10 +207,20 @@ collectors(Playwright 렌더 + LLM 추출 + 2-pass enrichment)
 
 ---
 
-**마지막 갱신**: 2026-07-29 KST (결함 4건 수정 + enrichment 계측 + 라이브 4회).
+**마지막 갱신**: 2026-08-01 KST (링크 예산 수정 → 5차 라이브 → council → 축적 루프 수리).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `4b276d6` (master, pushed) — `d27f87c` 구현 / `6cfcfef` 결함 수정 4건 /
-`16e19a4` enrichment 계측 / `d1cdc52`·`4b276d6` 레시피 데이터. working tree clean.
+**현재 HEAD**: `f318f3e` (master, pushed) — `d27f87c` 구현 / `6cfcfef` 결함 수정 4건 /
+`16e19a4` enrichment 계측 / `d1cdc52`·`4b276d6` 레시피 데이터 / `f318f3e` 문서.
+
+**미커밋 변경 있음** (2026-08-01, 사용자 승인 대기):
+- `src/collectors/extract.py` — 링크 예산(§4.5) + `_fact_id` 안정화(§5.1.1)
+- `src/kb/store.py` — `put()` 병합
+- `src/selection.py` — 선정 재설계(§5.4)
+- `src/orchestrator.py` — `reconned` 배선
+- `tests/` 3파일 — 신규 13건 (총 193 passed)
+- `docs/specs/…` — §4.5 파급 실측 / §5.1 정정 / §5.1.1·§5.4 신설
+- `docs/council/2026-08-01-*.md` (신규), `actions.yaml`(레시피 6→12), 이 문서
+- `cache/kb.yaml`은 gitignore. 마이그레이션 적용됨 (507→227). 백업은 세션 scratchpad
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.
