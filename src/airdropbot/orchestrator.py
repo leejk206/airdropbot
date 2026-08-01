@@ -84,9 +84,12 @@ def run_pipeline(
     for fact in anchored:
         store.put(fact)
 
-    targets = select_targets(store.query(now=now), now=now, limit=limit)
-
     recipes = {r.entry_url: r for r in load_recipes(actions_path)}
+    # 이미 레시피가 있는 프로젝트는 후순위로 민다 — v1의 목적은 재확인이 아니라
+    # 분포 축적이고, 실측에서 매 실행 같은 알파벳 머리만 정찰하고 있었다. spec §5.4.
+    reconned = frozenset(project_key(r.project) for r in recipes.values())
+    targets = select_targets(store.query(now=now), now=now, limit=limit, reconned=reconned)
+
     runs = []
     for fact in targets:
         # 정찰은 읽기 전용이므로 앵커가 없어도 수행한다 — v1의 목적이 실측 레시피

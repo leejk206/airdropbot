@@ -100,6 +100,42 @@ def test_put_upserts_by_id():
     assert store.all()[0].content == "new"
 
 
+# --- put() 병합 (spec §5.1.1 규칙 ②) --------------------------------------
+#
+# id가 (source, project)로 안정되면 매 런의 재추출 팩트가 같은 id로 들어온다.
+# 재추출본은 대개 source_url/official_url이 None이므로, 통째 replace면
+# enrichment가 어렵게 채운 값을 매일 null로 덮어쓴다. 규칙 ①의 필수 짝이다.
+
+
+def test_put_keeps_existing_optional_when_incoming_is_none():
+    store = FactStore([_f(id="a", source_url="https://p.xyz", official_url="https://p.xyz")])
+    store.put(_f(id="a", content="재추출", source_url=None, official_url=None))
+
+    kept = store.all()[0]
+    assert kept.source_url == "https://p.xyz"
+    assert kept.official_url == "https://p.xyz"
+    # 서술과 관측 시각은 최신이 맞다
+    assert kept.content == "재추출"
+
+
+def test_put_overwrites_optional_when_incoming_has_value():
+    store = FactStore([_f(id="a", source_url="https://old.xyz")])
+    store.put(_f(id="a", source_url="https://new.xyz"))
+    assert store.all()[0].source_url == "https://new.xyz"
+
+
+def test_put_keeps_existing_tags_when_incoming_empty():
+    store = FactStore([_f(id="a", tags=("testnet",))])
+    store.put(_f(id="a", tags=()))
+    assert store.all()[0].tags == ("testnet",)
+
+
+def test_put_updates_collected_at():
+    store = FactStore([_f(id="a", collected_at="2026-07-28")])
+    store.put(_f(id="a", collected_at="2026-08-01"))
+    assert store.all()[0].collected_at == "2026-08-01"
+
+
 def test_save_load_roundtrip(tmp_path):
     path = tmp_path / "kb.yaml"
     FactStore([_f(id="a", tags=("t",), expires_at="2026-09-01")]).save(path)

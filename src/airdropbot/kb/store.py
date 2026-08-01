@@ -74,7 +74,18 @@ class FactStore:
         self._facts: dict[str, Fact] = {f.id: f for f in (facts or [])}
 
     def put(self, fact: Fact) -> None:
-        self._facts[fact.id] = fact
+        """id 기준 upsert. 단, 들어온 선택 필드가 비어 있으면 기존 값을 유지한다.
+
+        spec §5.1.1 규칙 ②. id가 ``(source, project)``로 안정된 뒤로는 매 실행의
+        **재추출 팩트**가 같은 id로 들어오는데, 그 팩트는 대개 ``source_url``·
+        ``official_url``이 ``None``이다. 통째 replace면 enrichment가 렌더+LLM을
+        써서 캐낸 값을 매일 null로 덮어쓴다 — 병합은 선택이 아니라 규칙 ①의 짝이다.
+
+        반대로 ``content``·``collected_at``은 최신값으로 갱신한다. 이쪽은
+        "가장 최근에 관측한 서술"이 맞기 때문이다.
+        """
+        existing = self._facts.get(fact.id)
+        self._facts[fact.id] = _merge_facts(existing, fact) if existing else fact
 
     def all(self) -> list[Fact]:
         return list(self._facts.values())
@@ -103,6 +114,22 @@ class FactStore:
             return cls([])
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         return cls([_fact_from_dict(d) for d in raw.get("facts") or []])
+
+
+# 비어 있으면 기존 값을 유지하는 선택 필드 (spec §5.1.1 규칙 ②).
+_MERGED_OPTIONAL_FIELDS = ("detail_url", "source_url", "official_url", "chain", "expires_at")
+
+
+def _merge_facts(old: Fact, new: Fact) -> Fact:
+    """``new``를 기준으로 하되, 비어 있는 선택 필드는 ``old``에서 가져온다."""
+    filled = {
+        name: getattr(old, name)
+        for name in _MERGED_OPTIONAL_FIELDS
+        if getattr(new, name) is None and getattr(old, name) is not None
+    }
+    if not new.tags and old.tags:
+        filled["tags"] = old.tags
+    return replace(new, **filled) if filled else new
 
 
 def _fact_to_dict(fact: Fact) -> dict:

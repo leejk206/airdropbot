@@ -5,12 +5,17 @@ import hashlib
 import json
 import re
 
-from airdropbot.collectors.browser import RenderedPage
-from airdropbot.kb.store import registrable_domain
+from airdropbot.collectors.browser import MAX_LINKS, RenderedPage
+from airdropbot.kb.store import project_key, registrable_domain
 from airdropbot.llm import LLMClient
 from airdropbot.models import Fact
 
-MAX_LINKS_IN_PROMPT = 80
+# 링크 예산은 **수집 단 한 곳에서만** 정한다 (spec §4.5). 여기서 한 번 더 자르면
+# 프롬프트 층이 조용히 detail_url 커버리지의 상한을 정하게 된다 — 실측(2026-08-01)에서
+# 이 값이 80이던 동안 `airdrops.io`의 상세 링크는 index 1~147에 분포(중앙값 73)해서
+# 정확히 절반이 잘렸고, 그것이 커버리지 49%의 원인이었다. 대조군인 100% 소스 두 곳은
+# 상세 링크가 애초에 80 안에 들어와서 안 잘렸던 것뿐이다.
+MAX_LINKS_IN_PROMPT = MAX_LINKS
 
 _SYSTEM = (
     "You extract airdrop opportunities from a rendered web page. "
@@ -48,7 +53,7 @@ def extract_facts(page: RenderedPage, llm: LLMClient, *, now: str) -> list[Fact]
         content = (entry.get("content") or "").strip()
         facts.append(
             Fact(
-                id=_fact_id(source, project, content),
+                id=_fact_id(source, project),
                 project=project,
                 content=content,
                 source=source,
@@ -80,7 +85,17 @@ def strip_fence(text: str) -> str:
     return s.strip()
 
 
-def _fact_id(source: str, project: str, content: str) -> str:
-    digest = hashlib.sha256(f"{source}|{project}|{content}".encode()).hexdigest()[:12]
+def _fact_id(source: str, project: str) -> str:
+    """``(source, project)``만의 함수 — spec §5.1.1 규칙 ①.
+
+    한때 ``content``도 해싱했는데, 그건 LLM이 매 실행 새로 쓰는 한국어 요약이라
+    문구가 한 글자만 달라도 id가 바뀌었다. `put`이 id 기준 upsert이므로 dedupe가
+    전혀 걸리지 않아 **KB가 매 실행 자기를 복제했다** (실측 2026-08-01: 319 팩트가
+    실은 160 프로젝트의 2중 적재, 170쌍 중 149쌍 중복).
+
+    id가 안정되면 재추출본이 기존 팩트를 덮으므로 `FactStore.put`의 병합
+    의미론(규칙 ②)이 필수 짝이다 — 없으면 enrichment 결과가 매일 날아간다.
+    """
+    digest = hashlib.sha256(f"{source}|{project_key(project)}".encode()).hexdigest()[:12]
     slug = re.sub(r"[^a-z0-9]+", "-", project.lower()).strip("-")
     return f"{slug}-{digest}"
