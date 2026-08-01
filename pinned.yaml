@@ -4,51 +4,68 @@
 # snapshot_md 정규화 룰: prompts/airdrop_pin.md §6.
 # v0.11(2026-05-25)부터 자동 pin도 함께 누적 — digest routine §7이 ★★★ 이상 항목 auto-upsert.
 pins:
-  - id: sui
-    name: "Sui"
-    pinned_at: "2026-05-25T18:00:00+09:00"
-    expires_at: "2026-07-24T23:59:59+09:00"
-    expires_label: "auto 60일 TBA"
-    source_url: "https://cryptorank.io/drophunting/sui-activity220"
-    activity_url: "https://devnet.hashi.sui.io/"
-    official_url: "https://sui.io/"
-    auto_pinned: true
-    tge_date: null
-    snapshot_md: |
-      <a href="https://devnet.hashi.sui.io/">링크</a> · <a href="https://cryptorank.io/drophunting/sui-activity220">출처</a> — <a href="https://sui.io/">Sui(SUI)</a> - Hashi devnet 활동 참여 (whitelist 가입)
-  - id: solstice
-    name: "Solstice"
-    pinned_at: "2026-05-25T18:00:00+09:00"
-    expires_at: "2026-07-24T23:59:59+09:00"
-    expires_label: "auto 60일 TBA"
-    source_url: "https://icodrops.com/solstice/"
-    activity_url: null
-    official_url: "https://solstice.finance/"
-    auto_pinned: true
-    tge_date: null
-    snapshot_md: |
-      <a href="https://icodrops.com/solstice/">출처</a> — <a href="https://solstice.finance/">Solstice(티커 미정)</a> - Binance Alpha airdrop 청구 (~2시간 내 마감)
-  - id: citrea
-    name: "Citrea"
-    pinned_at: "2026-05-25T18:00:00+09:00"
-    expires_at: "2026-07-24T23:59:59+09:00"
-    expires_label: "auto 60일 TBA"
-    source_url: "https://icodrops.com/citrea/"
-    activity_url: null
-    official_url: "https://citrea.xyz/"
-    auto_pinned: true
-    tge_date: null
-    snapshot_md: |
-      <a href="https://icodrops.com/citrea/">출처</a> — <a href="https://citrea.xyz/">Citrea(티커 미정)</a> - Binance Alpha airdrop 청구 (~26시간 내 마감)
-  - id: konnex
-    name: "Konnex"
-    pinned_at: "2026-05-25T18:00:00+09:00"
-    expires_at: "2026-07-24T23:59:59+09:00"
-    expires_label: "auto 60일 TBA"
-    source_url: "https://cryptorank.io/drophunting/konnex-activity1071"
-    activity_url: "https://hub.konnex.world/points?referral_code=3F6J6J3N"
-    official_url: "https://konnex.world/"
-    auto_pinned: true
-    tge_date: null
-    snapshot_md: |
-      <a href="https://hub.konnex.world/points?referral_code=3F6J6J3N">링크</a> · <a href="https://cryptorank.io/drophunting/konnex-activity1071">출처</a> — <a href="https://konnex.world/">Konnex(티커 미정)</a> - hub.konnex.world points 캠페인 (~18분, social)
+- id: aiw3
+  name: AIW3
+  pinned_at: '2026-08-01T20:08:33+09:00'
+  expires_at: '2026-08-03T23:59:59+09:00'
+  expires_label: TGE 2026-08-03
+  source_url: https://cryptorank.io/drophunting/aiw-3-activity1201
+  activity_url: https://aiw3.ai/airdrop
+  official_url: https://aiw3.ai/
+  auto_pinned: true
+  tge_date: '2026-08-03'
+  snapshot_md: '<a href="https://aiw3.ai/airdrop">링크</a> · <a href="https://cryptorank.io/drophunting/aiw-3-activity1201">출처</a> — <a href="https://aiw3.ai/">AIW3(AIW3)</a> - airdrop 페이지에서 자격 확인 후 0G 캠페인 포인트 파밍 참여
+
+    '
+- id: moonpay
+  name: MoonPay
+  pinned_at: '2026-08-01T20:08:33+09:00'
+  expires_at: '2026-09-30T20:08:33+09:00'
+  expires_label: auto 60일 TBA
+  source_url: https://cryptorank.io/drophunting/moonpay-activity1256
+  activity_url: https://app.paybox.sh/
+  official_url: https://www.moonpay.com/
+  auto_pinned: true
+  tge_date: null
+  snapshot_md: '<a href="https://app.paybox.sh/">링크</a> · <a href="https://cryptorank.io/drophunting/moonpay-activity1256">출처</a> — <a href="https://www.moonpay.com/">MoonPay(티커 미정)</a> - PayBox 가입·소셜 인증으로 확정 화이트리스트 등록
+
+    '
+- id: grvt
+  name: GRVT
+  pinned_at: '2026-08-01T20:08:33+09:00'
+  expires_at: '2026-07-30T23:59:59+09:00'
+  expires_label: TGE 2026-07-30
+  source_url: https://cryptorank.io/drophunting/grvt-activity321
+  activity_url: https://grvt.io/exchange/reward-portal
+  official_url: https://grvt.io/
+  auto_pinned: true
+  tge_date: '2026-07-30'
+  snapshot_md: '<a href="https://grvt.io/exchange/reward-portal">링크</a> · <a href="https://cryptorank.io/drophunting/grvt-activity321">출처</a> — <a href="https://grvt.io/">GRVT(GRVT)</a> - 리워드 포털에서 배분 확인 후 청구 (Reward Date 7/30 경과)
+
+    '
+- id: t-rex
+  name: T-Rex
+  pinned_at: '2026-08-01T20:08:33+09:00'
+  expires_at: '2026-09-30T20:08:33+09:00'
+  expires_label: auto 60일 TBA
+  source_url: https://cryptorank.io/drophunting/t-rex-activity801
+  activity_url: https://s.trex.xyz/lliHHp
+  official_url: https://trex.xyz/
+  auto_pinned: true
+  tge_date: null
+  snapshot_md: '<a href="https://s.trex.xyz/lliHHp">링크</a> · <a href="https://cryptorank.io/drophunting/t-rex-activity801">출처</a> — <a href="https://trex.xyz/">T-Rex(티커 미정)</a> - 배지 퀘스트 수행하고 화이트리스트 적격 검증 통과
+
+    '
+- id: earnbit
+  name: EarnBIT
+  pinned_at: '2026-08-01T20:08:33+09:00'
+  expires_at: '2026-07-01T23:59:59+09:00'
+  expires_label: TGE 2026-07-01
+  source_url: https://icodrops.com/earnbit/
+  activity_url: null
+  official_url: https://earnbit.com/token
+  auto_pinned: true
+  tge_date: '2026-07-01'
+  snapshot_md: '<a href="https://icodrops.com/earnbit/">출처</a> — <a href="https://earnbit.com/token">EarnBIT(EBT)</a> - IEO 마감 약 11시간 전 — 참여 여부 즉시 판단 (자본 필요)
+
+    '

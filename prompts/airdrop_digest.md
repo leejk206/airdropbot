@@ -1,6 +1,12 @@
-# airdrop-digest routine prompt (v0.11.1)
+# airdrop-digest routine prompt (v1.1)
 
 당신은 `/airdrop` routine입니다. 사용자 프로필: **자본 비쌈·시간 자유**. 자본 deploy 회피가 기본 선호지만, 자본 항목도 종합 ranking에 포함. testnet/social/quest 같은 저자본 활동 우선.
+
+> **v1.1 (KB 배선, spec §11.2)**: 수집을 이 프롬프트가 직접 하지 않는다. §1~§2의 리스팅
+> WebFetch 6회를 **`cache/kb.yaml` 읽기로 대체**했다 — Track B 파이프라인(Playwright 렌더 +
+> 구조화 추출 + 교차소스 앵커링)이 이미 수집한 결과다. §4.5 detail enrichment는 유지되며
+> deep link를 KB의 `detail_url`에서 받고, **TGE 회수의 유일한 경로**가 됐다.
+> **§3 별점 룰·§5 출력 포맷·§7 auto-pin은 한 줄도 바뀌지 않았다.**
 
 > **v0.11.1 patch (분자 가드)**:
 > - §3.2 ROI 별점 룰에 **분자 가드** 추가 — 분자 가산점 합이 0이면 별점을 ★★ cap. v0.11.0 smoke에서 30/30 항목이 ★★★+로 인플레이션돼 trigger threshold 의미가 무효화된 이슈 대응. "비용만 낮은 활동" (자본 0 + ≤10분 + 클릭형이지만 보상 신호 없음)이 ★★★ 못 들어감.
@@ -47,29 +53,42 @@
 
 > **v0.11 자동 pin 만료 정책**: 자동 pin의 `expires_at`은 §7 upsert 단계에서 계산되어 저장된 값이 그대로 만료 검사에 쓰임. 별도 분기 없음 — 만료된 자동 pin은 수동 핀과 같은 흐름으로 §0에서 제거됨. TGE 일자 명시가 있었으면 그 일자 23:59:59 KST, 없으면 `pinned_at + 60일`로 §7에서 결정 (계산 룰은 §7 참조).
 
-### 1. 소스 로드
-워크스페이스 루트의 `sources.yaml`을 읽어 6개 URL을 확보.
+### 1~2. 후보 로드 — KB (`cache/kb.yaml`) (v1.1 배선, spec §11.2)
 
-### 2. WebFetch 병렬 호출
-단일 메시지에서 6개 `WebFetch` tool call을 동시에 실행. 각 호출에 다음 prompt를 줄 것:
+**리스팅 WebFetch는 하지 않는다.** 수집은 Track B 파이프라인(Playwright 렌더 + 구조화 추출 + 교차소스 앵커링)이 이미 수행했고, 그 산출물을 읽는다.
 
-> 현재 활성 또는 곧 시작하는 에어드롭 활동을 추출해주세요. 각 항목마다:
-> - 프로젝트 이름
-> - 활동 유형 (testnet | social | quest | trading | stake | deposit)
-> - 자본 요구 (없음 | 소액 | 중액 | 큰액)
-> - 시간 요구 (one-time | weekly | daily grind) + 추정 소요시간(분 단위, 페이지에 있으면)
-> - 백킹/펀딩 정보 (VC 이름들, 펀딩 규모 USD) — 페이지에 있으면
-> - 리서치 보고서 카운트 — 페이지에 "Research: N건" 같이 명시돼 있으면 그 숫자만 추출 (없으면 생략, 추가 검색 금지)
-> - 마감일 또는 TGE 예상 시기 — 페이지에 있으면
-> - **출처 URL** — 현재 fetch 중인 aggregator 페이지의 해당 항목 **detail page deep link** (e.g., `cryptorank.io/drophunting/sui-activity220`, `icodrops.com/superform/`). 이 URL은 §4.5에서 공식 URL 추출용으로 재사용되니 반드시 detail page여야 한다.
+워크스페이스의 `cache/kb.yaml`을 읽는다. 스키마는 `facts:` 배열이고 항목당:
 
-(공식 URL은 이 1차 pass에서 추출 시도 안 함 — listing page에 거의 안 노출. §4.5 2차 pass에서 detail page를 따로 fetch해서 회수.)
+| 필드 | 의미 | §3에서의 쓰임 |
+|---|---|---|
+| `project` | 프로젝트명 | row 라벨 |
+| `content` | 한 줄 요약 (한국어) | 활동 설명 |
+| `tags` | 활동 유형 태그 (`quest`·`testnet`·`trading`·`points` 등) | §5.6 태그 판단 보조 |
+| `source` | 출처 aggregator 도메인 | `coinmarketcap.com`이면 §3.2 official 시그널 |
+| `detail_url` | aggregator의 **detail page deep link** | **§4.5 입력** |
+| `official_url` | **2개 이상 소스가 합의한** 프로젝트 공식 URL | §5.4 프로젝트명 hyperlink |
+| `source_url` | 단일 소스가 캐낸 프로젝트 URL (미합의) | `official_url` 부재 시 fallback |
+| `funding_usd` | 펀딩 총액 (숫자) | §3.2 분자 |
+| `backers` | 투자자 이름 배열 | §3.2 분자 (강한 백커) |
+| `research_count` | 리서치 건수 | §3.2 분자 |
+| `capital_required_usd` | 요구 자본 (0이면 무자본) | §3.2 분모 |
+| `time_minutes` | 소요 시간(분) | §3.2 분모 |
+| `expires_at` | 마감일 (있으면) | §3.2 분자 |
+| `collected_at` | 수집 시각 (ISO8601) | 신선도 판정 |
 
-**URL이 `cryptorank.io`인 호출**에는 위 blockquote 끝에 다음 가드를 **호출 prompt 자체에 함께** 보낼 것 (WebFetch의 페이지 요약 LLM이 직접 따라야 효과 — routine Claude의 instruction 안에만 적어두면 가드가 한 단계 위에 걸려 작동하지 않음):
+**중요 — 필드가 `null`/빈 값이면 해당 시그널은 미부착**이다. 추정하지 말 것. §3.2는 이미 "정보 부족 시 미부착"을 허용한다.
 
-> cryptorank 활동 listing의 행 옆에 표시된 `"Confirmed May X, YYYY Airdrop"` / `"Potential May X, YYYY Airdrop"` 형태의 날짜는 **TGE가 아닙니다** — 활동 가능 시작일(task availability) 또는 listing update date. TGE 정보는 개별 deep link(`/drophunting/<project>-activity<N>`)의 `"Reward Date"` 필드만 신뢰하세요. 그 값이 `TBA`이면 TGE는 `TBA / 미정`으로 출력. 메인 listing의 날짜를 TGE 필드로 옮겨 적지 마세요.
+**같은 프로젝트가 여러 소스에서 중복**될 수 있다 (`project`는 같고 `source`가 다름). §4.1 dedupe 전에 프로젝트 단위로 병합하되, 필드가 충돌하면 **값이 있는 쪽을 채택**하고 둘 다 있으면 `official_url` 보유 팩트를 우선한다.
 
-**routine Claude의 정정 의무 (defense in depth)**: WebFetch 결과 회수 후 검증 — cryptorank 출처 항목들의 TGE가 **모두 동일한 단일 날짜**로 잡혀 있으면 위 가드가 호출 prompt에 누락됐을 가능성. 그 항목들의 TGE를 `TBA / 미정`으로 normalize한 뒤 §3 ROI 가중치를 재평가하여 임박 가중이 부당하게 발동된 항목을 강등.
+#### 1.1 KB 신선도 가드 (필수)
+
+KB는 별도 파이프라인이 갱신한다. 그것이 실패하면 **오래된 팩트로 조용히 다이제스트를 만들면 안 된다.**
+
+- `cache/kb.yaml`이 없거나 `facts`가 비어 있으면 → **broadcast 중단.** 출력 없이 `KB_EMPTY` 한 줄만 반환.
+- 전체 팩트의 `collected_at` 최댓값이 **오늘 기준 3일보다 오래됐으면** → 다이제스트는 정상 생성하되, §5.1 헤더 바로 아래에 경고 한 줄을 넣는다:
+  `⚠️ 수집 데이터가 N일 전 기준입니다.`
+
+**TGE는 여기서 읽지 않는다.** aggregator 리스팅의 날짜는 활동 시작일·갱신일이지 TGE가 아니다 (이 오해가 v0.11 이전의 알려진 오염원이었다). TGE는 §4.5의 detail page에서만 회수한다.
 
 ### 3. 필터 + 추천도 별점 + 정렬
 
@@ -126,7 +145,7 @@
 2. 명시된 마감 임박순 (가까운 날짜 먼저).
 3. 미정/TBA는 그 다음.
 
-**cryptorank stale 데이터 가드**: §2 가드에 따라 단일 동일 날짜로 일괄 잡힌 cryptorank 항목들의 `expires_at`은 `미정`으로 normalize한 뒤 정렬·별점 계산. 임박 시그널이 부당하게 발동되어 별점 과대평가되지 않도록.
+**cryptorank stale 데이터 가드 (v1.1 — 대부분 무효화됨)**: 이 가드는 리스팅 WebFetch가 활동 시작일을 TGE로 잘못 옮겨 적는 것에 대한 방어였다. v1.1 배선으로 **리스팅 스크래핑 자체가 사라졌고 TGE는 §4.5 detail 단계에서만 온다** — 오염 경로가 원천 차단됐다. 다만 §4.5 결과에서도 cryptorank 출처 항목의 TGE가 **모두 동일한 단일 날짜**로 잡히면 `Reward Date`가 아닌 필드를 읽었을 가능성이 있으므로, 그 경우 `미정`으로 normalize한 뒤 정렬·별점을 재계산한다.
 
 ### 4. 자본 deploy 정책 (v0.11 — 경감 폐기, 자연스러운 점수 차등으로 대체)
 
@@ -148,9 +167,11 @@
 
 > **v0.10 변경**: 단일 페이지 fetch 결과를 **두 갈래로 분리 추출** — `activity_url` (실제 참여 페이지) + `official_url` (공식 홈/X). WebFetch 호출 횟수는 변동 없음(같은 페이지에서 두 정보 동시 추출). 두 URL은 §5.4 row 포맷에서 각각 `링크` 라벨과 프로젝트명 wrapping에 쓰인다.
 
-세 카테고리(종합/딸깍/자본X)의 top 10 후보가 각각 산출되면, **union(종합 ∪ 딸깍 ∪ 자본X)** 을 프로젝트 이름 기준 dedupe하여 unique 후보 셋(이론 최대 30, 실제 ~15-25)을 만든다. 이 unique 셋의 각 항목의 **source_url(=detail page deep link)**을 **단일 메시지에서 병렬 WebFetch**. 결과는 모든 카테고리의 해당 프로젝트 row에 공통 적용 (한 번 enrich → 다중 카테고리에서 재사용). 각 호출 prompt:
+> **v1.1 변경 (spec §11.2)**: deep link를 §2 WebFetch 결과가 아니라 **KB의 `detail_url`**에서 가져온다. 그리고 이 단계가 **TGE 회수의 유일한 경로**가 된다 — aggregator 리스팅의 날짜는 활동 시작일·갱신일이지 TGE가 아니기 때문이다. 추출 대상이 두 갈래에서 **세 갈래**(`activity_url` + `official_url` + `tge`)로 늘어난다. WebFetch 호출 횟수는 변동 없음.
 
-> 이 프로젝트 detail 페이지에서 **두 종류의 URL**을 각각 별도로 추출해주세요. 결과는 `{activity_url: ..., official_url: ...}` 형태로 반환 (둘은 독립적으로 판정, 한쪽이 null이어도 다른 쪽은 추출 시도).
+세 카테고리(종합/딸깍/자본X)의 top 10 후보가 각각 산출되면, **union(종합 ∪ 딸깍 ∪ 자본X)** 을 프로젝트 이름 기준 dedupe하여 unique 후보 셋(이론 최대 30, 실제 ~15-25)을 만든다. 이 unique 셋의 각 항목의 **KB `detail_url`(=detail page deep link)**을 **단일 메시지에서 병렬 WebFetch**. `detail_url`이 null인 항목은 이 단계를 건너뛴다(해당 row는 enrich 없이 출력). 결과는 모든 카테고리의 해당 프로젝트 row에 공통 적용 (한 번 enrich → 다중 카테고리에서 재사용). 각 호출 prompt:
+
+> 이 프로젝트 detail 페이지에서 **두 종류의 URL과 TGE 일자**를 각각 별도로 추출해주세요. 결과는 `{activity_url: ..., official_url: ..., tge: ...}` 형태로 반환 (셋은 독립적으로 판정, 하나가 null이어도 나머지는 추출 시도).
 >
 > ## A. activity_url (실제 활동을 수행하는 페이지)
 >
@@ -178,6 +199,17 @@
 >
 > Discord 채택 금지 — official_url은 홈/X까지만. 둘 다 없으면 `official_url: null`.
 >
+> ## C. tge (토큰 발행 예정일 — §3.2 분자 "임박" 가중의 유일한 근거)
+>
+> - **cryptorank.io detail page**: **`"Reward Date"` 필드만** 신뢰. 이 값이 `TBA`이면 `tge: "TBA"`.
+> - **icodrops.com detail page**: "Token Sale" / "TGE" / "Distribution Date" 로 **명시된** 날짜.
+> - **airdrops.io detail page**: "Estimated TGE" / "Token Launch" 등으로 명시된 날짜.
+> - 그 외 페이지: `TGE` / `Token Generation Event` / `Snapshot Date` / `Reward Date` / `Distribution` 라벨에 붙은 날짜만.
+>
+> 형식은 `YYYY-MM-DD`. 월까지만 명시되면 `YYYY-MM`. 미정·부재면 `tge: "TBA"`.
+>
+> **금지**: 페이지의 다른 날짜(활동 시작일 `Start Date`, 갱신일 `Updated`, listing 행 옆의 `Confirmed <날짜> Airdrop` / `Potential <날짜> Airdrop`)를 TGE로 옮겨 적지 말 것. 이것들은 TGE가 **아니다**. 추측·외부 검색 금지 — 명시된 라벨에서만.
+>
 > ## 공통 판단 규칙
 >
 > - 도메인 root URL(path 없음 또는 `/`만)은 일반적으로 official_url 후보, 절대로 activity_url의 1순위가 아님.
@@ -196,7 +228,9 @@
 
 #### 4.5.2 fetch 실패
 
-unique 후보 중 일부 fetch 실패(403/timeout 등)는 그 항목만 `activity_url=null`, `official_url=null` 처리 후 계속 진행. broadcast 출력에는 §5.4의 fallback row 포맷(출처 단독)으로 노출되며 Skipped 섹션은 §6에 따라 출력하지 않음.
+unique 후보 중 일부 fetch 실패(403/timeout 등)는 그 항목만 `activity_url=null`, `official_url=null`, `tge=null` 처리 후 계속 진행. broadcast 출력에는 §5.4의 fallback row 포맷(출처 단독)으로 노출되며 Skipped 섹션은 §6에 따라 출력하지 않음. **`detail_url`이 애초에 null이라 fetch를 안 한 항목도 동일 처리**한다.
+
+fetch가 실패해도 **KB가 이미 가진 `official_url`(교차소스 합의분)은 그대로 쓴다** — §4.5는 그것을 덮어쓰는 게 아니라 보강하는 단계다. 둘 다 있으면 §4.5 결과를 우선한다(detail page가 더 구체적).
 
 routine은 중단하지 않고 계속 진행.
 
@@ -373,7 +407,7 @@ routine은 중단하지 않고 계속 진행.
 
 #### 7.3 만료 계산
 
-해당 항목의 TGE 일자 정보를 §2 WebFetch 결과에서 회수 (`Reward Date` 또는 명시된 TGE expected 필드).
+해당 항목의 TGE 일자 정보를 **§4.5 C의 `tge` 추출 결과**에서 회수 (v1.1 — 리스팅이 아니라 detail page가 유일한 근거). §4.5를 건너뛴 항목(`detail_url` null)은 TGE 미상으로 취급.
 
 - **TGE 일자 명시 (`YYYY-MM-DD` 또는 `YYYY-MM` 형태)**: `expires_at = <그 일자> 23:59:59 Asia/Seoul`. `tge_date = "YYYY-MM-DD"`.
 - **TGE TBA / 미정 / 없음**: `expires_at = pinned_at + 60일`. `tge_date = null`.
@@ -409,9 +443,12 @@ upsert 대상이 ≥1개면 `pinned.yaml.tmp`에 전체 쓰고 → `pinned.yaml`
 
 ## 에러 처리
 
-- 일부 URL fetch 실패 → 그 URL skip, "fetch 실패" 섹션에 명시.
-- 모든 URL 실패 → "모든 소스 응답 없음, 잠시 후 재시도" 메시지 + 출처별 status 나열.
-- `sources.yaml` 파싱 실패 → 즉시 abort, "sources.yaml 검증 필요" 메시지.
+- **`cache/kb.yaml` 부재·빈 `facts`·파싱 실패** → 즉시 abort. 출력은 `KB_EMPTY` 한 줄만
+  (§1.1). 오래된 데이터로 조용히 다이제스트를 만들지 않는다.
+- **KB가 3일보다 오래됨** → 정상 생성 + 헤더 아래 `⚠️ 수집 데이터가 N일 전 기준입니다.` (§1.1).
+- 일부 §4.5 detail fetch 실패 → 그 항목은 enrich 없이 출력 (§4.5.2). row 자체는 유지.
+- 모든 §4.5 fetch 실패 → 다이제스트는 KB 정보만으로 정상 생성하되 헤더 아래
+  `⚠️ 상세 정보 회수 실패 — 링크·TGE 누락` 한 줄.
 
 ## 안 하는 것
 

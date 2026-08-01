@@ -117,18 +117,41 @@ class FactStore:
 
 
 # 비어 있으면 기존 값을 유지하는 선택 필드 (spec §5.1.1 규칙 ②).
-_MERGED_OPTIONAL_FIELDS = ("detail_url", "source_url", "official_url", "chain", "expires_at")
+# ROI 신호(§11.1)도 포함한다 — 페이지에 명시될 때만 채워져 런마다 들쭉날쭉하므로,
+# 병합하지 않으면 어제 잡은 펀딩 규모가 오늘 null로 날아가 별점이 이유 없이 흔들린다.
+_MERGED_OPTIONAL_FIELDS = (
+    "detail_url",
+    "source_url",
+    "official_url",
+    "chain",
+    "expires_at",
+    "funding_usd",
+    "research_count",
+    "capital_required_usd",
+    "time_minutes",
+)
+# 빈 시퀀스일 때 기존 값을 유지하는 필드. ``None`` 검사로는 안 걸린다.
+_MERGED_SEQUENCE_FIELDS = ("tags", "backers")
 
 
 def _merge_facts(old: Fact, new: Fact) -> Fact:
-    """``new``를 기준으로 하되, 비어 있는 선택 필드는 ``old``에서 가져온다."""
+    """``new``를 기준으로 하되, 비어 있는 선택 필드는 ``old``에서 가져온다.
+
+    판정은 ``is None`` 기준이다 — ``0``·``0.0``은 유효한 관측값이라 유지해야 한다.
+    falsy로 판정하면 "자본 0"(별점 분모 +1) 신호가 조용히 사라진다.
+    """
     filled = {
         name: getattr(old, name)
         for name in _MERGED_OPTIONAL_FIELDS
         if getattr(new, name) is None and getattr(old, name) is not None
     }
-    if not new.tags and old.tags:
-        filled["tags"] = old.tags
+    filled.update(
+        {
+            name: getattr(old, name)
+            for name in _MERGED_SEQUENCE_FIELDS
+            if not getattr(new, name) and getattr(old, name)
+        }
+    )
     return replace(new, **filled) if filled else new
 
 

@@ -74,6 +74,53 @@ def test_extract_facts_ignores_non_array_json():
     assert extract_facts(_PAGE, FakeLLM(['{"project": "X"}']), now="x") == []
 
 
+# --- ROI 신호 (spec §11.1) --------------------------------------------------
+#
+# Track A의 별점 룰(§3.2)은 분자(백커·펀딩·TGE)와 분모(자본·소요시간)로 ROI를 매긴다.
+# KB가 이걸 안 실으면 배선 시 분자 가드가 전 항목을 ★★로 cap한다. 실측 n=227에서
+# expires_at은 2건, 나머지 신호는 0건이었다 — 데이터 부재가 아니라 안 물어봐서다.
+
+_ROI = """[{"project": "Citrea", "content": "브리지",
+  "expires_at": "2026-08-15", "funding_usd": 45000000,
+  "backers": ["Paradigm", "a16z"], "capital_required_usd": 0,
+  "time_minutes": 8, "research_count": 7}]"""
+
+
+def test_extract_facts_captures_roi_signals():
+    fact = extract_facts(_PAGE, FakeLLM([_ROI]), now="2026-07-28")[0]
+    assert fact.funding_usd == 45_000_000
+    assert fact.backers == ("Paradigm", "a16z")
+    assert fact.capital_required_usd == 0
+    assert fact.time_minutes == 8
+    assert fact.research_count == 7
+
+
+def test_roi_signals_default_to_none_when_absent():
+    """페이지에 명시되지 않으면 null — 추정 금지 (spec §11.1 추출 규약)."""
+    fact = extract_facts(_PAGE, FakeLLM([_GOOD]), now="2026-07-28")[0]
+    assert fact.funding_usd is None
+    assert fact.backers == ()
+    assert fact.capital_required_usd is None
+    assert fact.time_minutes is None
+    assert fact.research_count is None
+
+
+def test_extract_prompt_asks_for_roi_signals():
+    llm = FakeLLM(["[]"])
+    extract_facts(_PAGE, llm, now="x")
+    system = llm.calls[0][0]
+    for key in ("funding_usd", "backers", "capital_required_usd", "time_minutes"):
+        assert key in system
+
+
+def test_roi_signals_survive_bad_types():
+    """LLM이 숫자 자리에 문자열을 넣어도 파이프라인을 죽이지 않는다."""
+    bad = '[{"project": "P", "content": "c", "funding_usd": "unknown", "time_minutes": "~10"}]'
+    fact = extract_facts(_PAGE, FakeLLM([bad]), now="x")[0]
+    assert fact.funding_usd is None
+    assert fact.time_minutes is None
+
+
 # --- 링크 예산 (spec §4.5) -------------------------------------------------
 #
 # 실측(2026-08-01): `airdrops.io`의 상세 링크는 index 1~147에 분포하고 중앙값이 73이다.

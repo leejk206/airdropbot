@@ -130,6 +130,34 @@ def test_put_keeps_existing_tags_when_incoming_empty():
     assert store.all()[0].tags == ("testnet",)
 
 
+def test_put_merges_roi_signals_too():
+    """ROI 신호도 병합 대상 — 안 그러면 재추출이 매번 지운다 (spec §11.1).
+
+    이 필드들은 페이지에 명시될 때만 채워지므로 런마다 들쭉날쭉하다. 통째 replace면
+    어제 잡은 펀딩 규모가 오늘 null로 날아가고 별점이 이유 없이 흔들린다.
+    """
+    store = FactStore([_f(id="a", funding_usd=45e6, backers=("a16z",), time_minutes=8)])
+    store.put(_f(id="a", funding_usd=None, backers=(), time_minutes=None))
+
+    kept = store.all()[0]
+    assert kept.funding_usd == 45e6
+    assert kept.backers == ("a16z",)
+    assert kept.time_minutes == 8
+
+
+def test_put_overwrites_roi_signal_when_incoming_has_value():
+    store = FactStore([_f(id="a", funding_usd=10e6)])
+    store.put(_f(id="a", funding_usd=45e6))
+    assert store.all()[0].funding_usd == 45e6
+
+
+def test_put_keeps_zero_capital_signal():
+    """0은 유효한 값이다 — falsy라고 버리면 '자본 0'(분모 +1)이 사라진다."""
+    store = FactStore([_f(id="a", capital_required_usd=0.0)])
+    store.put(_f(id="a", capital_required_usd=None))
+    assert store.all()[0].capital_required_usd == 0.0
+
+
 def test_put_updates_collected_at():
     store = FactStore([_f(id="a", collected_at="2026-07-28")])
     store.put(_f(id="a", collected_at="2026-08-01"))

@@ -20,12 +20,22 @@ MAX_LINKS_IN_PROMPT = MAX_LINKS
 _SYSTEM = (
     "You extract airdrop opportunities from a rendered web page. "
     "Return STRICT JSON only: an array of objects with keys "
-    '"project", "content", "detail_url", "source_url", "chain", "tags", "expires_at". '
+    '"project", "content", "detail_url", "source_url", "chain", "tags", "expires_at", '
+    '"funding_usd", "backers", "research_count", "capital_required_usd", "time_minutes". '
     '"content" is a one-line Korean summary. "detail_url" is the link on THIS site '
     "that describes the project in detail (take it from the provided links; this is "
     'usually an internal page of the aggregator). "source_url" is the project\'s OWN '
     "website if — and only if — it appears in the links; otherwise null. "
-    '"expires_at" is YYYY-MM-DD or null. "tags" is a string array. '
+    '"expires_at" is the deadline or expected TGE date as YYYY-MM-DD, or null. '
+    '"tags" is a string array. '
+    '"funding_usd" is the total raised in USD as a number (45000000, not "45M"). '
+    '"backers" is an array of named investors. "research_count" is the number of '
+    'research/report entries the page states. "capital_required_usd" is the money the '
+    'user must deploy (0 if the task is free apart from gas). "time_minutes" is the '
+    "stated time to complete. "
+    "CRITICAL: fill these ONLY from values the page states explicitly. Never estimate, "
+    "infer, or recall from your own knowledge — use null (or [] for backers) when the "
+    "page does not say. A wrong number here silently distorts downstream ranking. "
     "Output nothing except the JSON array (a ```json fence is tolerated)."
 )
 
@@ -63,9 +73,30 @@ def extract_facts(page: RenderedPage, llm: LLMClient, *, now: str) -> list[Fact]
                 chain=entry.get("chain") or None,
                 tags=tuple(entry.get("tags") or ()),
                 expires_at=entry.get("expires_at") or None,
+                funding_usd=_number(entry.get("funding_usd")),
+                backers=tuple(str(b) for b in (entry.get("backers") or ()) if b),
+                research_count=_integer(entry.get("research_count")),
+                capital_required_usd=_number(entry.get("capital_required_usd")),
+                time_minutes=_integer(entry.get("time_minutes")),
             )
         )
     return facts
+
+
+def _number(value) -> float | None:
+    """숫자만 통과시킨다. LLM이 "unknown"·"~10"·"45M"을 보내도 죽지 않는다.
+
+    파싱 실패를 0으로 접으면 "자본 0"(분모 +1)이 근거 없이 켜진다. None이어야
+    별점 룰의 "정보 부족 시 미부착"으로 떨어진다.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _integer(value) -> int | None:
+    number = _number(value)
+    return None if number is None else int(number)
 
 
 def _parse_json_array(raw: str) -> list[dict]:

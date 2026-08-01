@@ -28,6 +28,14 @@ class Fact:
     chain: str | None = None
     tags: tuple[str, ...] = ()
     expires_at: str | None = None
+    # --- ROI 신호 (spec §11.1) ---
+    # Track A의 별점 룰이 분자(보상)/분모(비용)로 쓰는 값들. 페이지에 명시된 것만
+    # 채우고 없으면 None — 추정하면 별점이 근거 없이 움직인다.
+    funding_usd: float | None = None
+    backers: tuple[str, ...] = ()
+    research_count: int | None = None
+    capital_required_usd: float | None = None
+    time_minutes: int | None = None
 
 
 @dataclass(frozen=True)
