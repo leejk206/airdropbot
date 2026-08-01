@@ -1,6 +1,6 @@
 recipes:
 - project: Polymarket
-  recipe_hash: sha256:3497a210cbfc07aa73757cb3dfb983f46f71f20a443cac6421c693425b3d9a9e
+  recipe_hash: sha256:4fd59529212907b503bd4f1b0c6f8b40a05524d2a8cc982e4d438c531d4688a8
   entry_url: https://polymarket.com/
   chain: Polygon
   signature_kind: approve
@@ -10,56 +10,61 @@ recipes:
   - action: goto
     target: https://polymarket.com/
   - action: click
-    target: Sign Up button in top-right header
-  - action: fill
-    target: Email address field (or choose Google / wallet login)
-  - action: wait
-    target: Email verification code / magic link confirmation
+    target: Sign up / Log in button (top right)
   - action: wallet_connect
-    target: Connect wallet modal (MetaMask / WalletConnect / embedded Magic wallet)
-      on Polygon
+    target: Connect wallet (MetaMask/WalletConnect) or email login creating a Polygon
+      proxy wallet
   - action: wallet_sign
-    target: Sign-in authentication message to link wallet to Polymarket account
-  - action: click
-    target: Deposit button in header
-  - action: fill
-    target: USDC deposit amount (bridge/transfer USDC.e to the Polygon deposit address)
+    target: Sign login authentication message to link wallet to Polymarket account
   - action: wait
-    target: Deposit confirmation on Polygon and balance update
-  - action: click
-    target: A market card from the homepage (e.g. 'Fed Decision in July?')
-  - action: click
-    target: Yes or No outcome button on the market page
+    target: Account/profile creation and onboarding modal to finish loading
   - action: fill
-    target: Share amount / USDC size input in the order panel
+    target: Profile username field (onboarding)
+  - action: click
+    target: Deposit button
+  - action: click
+    target: Select deposit method (USDC on Polygon / bridge / card)
+  - action: fill
+    target: Deposit amount field (e.g. 50 USDC)
   - action: wallet_approve
-    target: USDC + Conditional Tokens allowance for CTF Exchange contract (unlimited
-      approval prompt)
-  - action: wallet_sign
-    target: EIP-712 order signature to submit the trade to the CLOB
+    target: Approve USDC spend for deposit/bridge contract
   - action: wait
-    target: Order fill confirmation and position appearing in Portfolio
+    target: Deposit confirmation and balance to appear in account
   - action: click
-    target: Profile menu > Portfolio / Activity to verify trade volume is recorded
+    target: A market card on the homepage (e.g. 'Fed Decision in September?')
   - action: click
-    target: Rewards link in footer to check liquidity-reward and points eligibility
+    target: Yes or No outcome button
+  - action: fill
+    target: Order amount/shares input field
+  - action: wallet_approve
+    target: USDC ERC-20 allowance and CTF setApprovalForAll for the Polymarket exchange
+      contract (first trade only)
+  - action: wallet_sign
+    target: Sign the EIP-712 CLOB order payload
+  - action: click
+    target: Buy / Place order confirmation button
+  - action: wait
+    target: Order fill confirmation and position to appear in Portfolio
+  - action: click
+    target: Portfolio / Activity tab to verify recorded trade history
+  - action: click
+    target: Rewards link in footer to check any active reward or leaderboard program
   automatable: manual
   blockers:
-  - No official airdrop or token program announced; points/rewards accrual is speculative
-  - Account signup requires email/OAuth (Google/Magic Link) or wallet, often with
-    email verification
-  - Geographic restrictions — US and several other jurisdictions are blocked on the
-    international platform; Polymarket US (QCX LLC) is a separate CFTC-regulated entity
-    with KYC
-  - Deposit requires bridging/onramping USDC to Polygon, or fiat onramp with identity
-    verification
-  - Trading requires USDC allowance approvals to the CTF Exchange / conditional tokens
-    contracts (typically unlimited approval)
-  - Cloudflare/bot protection and captcha on signup and login flows
-  - Real capital at risk — outcomes are financial bets that can lose value
-  - Terms of Use prohibit automated/bot access to the UI; only the documented CLOB
-    API is sanctioned
-  reconned_at: '2026-07-29T11:49:54Z'
+  - No official airdrop/points program is announced on the page — token reward is
+    speculative, criteria unknown
+  - Account signup requires email/social login (Log in / Sign up) with possible email
+    or OTP verification
+  - 'Geo-restrictions: US users are routed to the CFTC-regulated Polymarket US entity;
+    many jurisdictions are blocked and may require KYC'
+  - Requires real USDC capital deposited on Polygon to place trades; funds are at
+    risk of loss
+  - On first trade the proxy wallet must sign ERC-20 USDC approvals and CTF setApprovalForAll
+    (typically unlimited allowance)
+  - Cloudflare/bot protection and dynamic market UI make headless automation unreliable
+  - Meaningful 'experience' likely needs sustained volume over weeks, not a one-off
+    action
+  reconned_at: '2026-08-01T10:15:00Z'
   verdict: null
 - project: 3DOS
   recipe_hash: sha256:24b332d8948748fbee5484e40175abed9ac2a4579083379038fb87e99319f278
@@ -333,7 +338,7 @@ recipes:
   reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
 - project: AIW3
-  recipe_hash: sha256:f989e56d5169215c2364a5b12a6416d4044a157076e9709514383411da789df4
+  recipe_hash: sha256:e8fda3dbd0dafe5b2cdc5e4bb5239d790fb183e9cbd1c23e8a13af679134a767
   entry_url: https://aiw3.ai/?userInviteCode=REF2DL8L
   chain: BSC
   signature_kind: message
@@ -343,185 +348,148 @@ recipes:
   - action: goto
     target: https://aiw3.ai/?userInviteCode=REF2DL8L
   - action: click
-    target: '''Claim Airdrop'' 버튼 (히어로 섹션)'
+    target: Claim Airdrop button (hero section)
   - action: wait
-    target: Connect 지갑 모달 노출
+    target: Connect wallet modal to render
   - action: click
-    target: Network 선택 'BSC'
+    target: Network selector → BSC
+  - action: click
+    target: Wallet option (OKX Wallet / MetaMask / Binance Wallet / Gate Wallet /
+      Bitget Wallet)
   - action: wallet_connect
-    target: OKX Wallet / MetaMask / Binance Wallet / Gate Wallet / Bitget Wallet 중
-      택1
+    target: Injected wallet provider on BSC
   - action: fill
-    target: Invitation code(Optional) 입력란에 'REF2DL8L'
+    target: Invitation code (Optional) input → REF2DL8L
+  - action: click
+    target: Connect / Confirm button in modal
   - action: wallet_sign
-    target: 로그인용 메시지 서명 요청 (SIWE 형식 추정)
+    target: Login / verification message signature request from wallet
   - action: wait
-    target: 에어드랍 대시보드 로딩 및 포인트 현황 표시
+    target: Airdrop dashboard to load with points and task list
   - action: click
-    target: '''Complete Tasks'' 섹션 진입'
+    target: Airdrop tab in top navigation
   - action: click
-    target: 각 태스크 항목 (초대 / 거래 리베이트 / 전략 가이드 / Academy 코스 / 전략 생성) 순차 수행
-  - action: click
-    target: '''Create API Key'' 버튼 (Skills 연동 태스크 수행 시)'
+    target: Individual task entries (invite friends, follow strategy guides, Academy
+      courses, create strategy) to complete and earn points
   - action: wait
-    target: 포인트 적립 반영
+    target: Points to accumulate to the redemption threshold and TGE on Aug 3
   - action: click
-    target: '''Claim Airdrop Now'' 버튼 (포인트 임계값 충족 시)'
+    target: Claim / Redeem airdrop button once eligible
   - action: wallet_approve
-    target: 클레임 트랜잭션 승인 (BSC 가스비 필요, 클레임 컨트랙트 상호작용 시)
+    target: Claim transaction confirmation in wallet (if an on-chain claim is required
+      at TGE)
   automatable: partial
   blockers:
-  - 스냅샷이 이미 진행된 화이트리스트형 활동 — 신규 참여자는 소급 적격이 아닐 수 있음
-  - TGE가 8월 3일로 예정되어 있고 카운트다운이 약 1일 5시간 남아 참여 마감 임박
-  - 포인트 임계값 도달이 에어드랍 수령 조건이며, 임계값 수치가 페이지에 명시되지 않음
-  - 주요 태스크(초대, 거래 리베이트, 전략 생성, Academy 수강)가 다단계·계정 기반이라 자동화 범위 밖
-  - API 키 발급 및 외부 AI 어시스턴트(OpenClaw/Claude Code/Cursor)에 스킬 설치가 필요한 태스크가 포함됨
-  - OKX Boost 연동 등 외부 플랫폼 계정이 별도로 요구될 수 있음
-  - 지갑 연결 후 실제 서명 문구/트랜잭션 요구 여부는 앱 진입 전 확인 불가
-  reconned_at: '2026-08-01T09:53:14Z'
+  - Whitelist/snapshot phase — airdrop eligibility is snapshot-based and may already
+    be closed to new participants
+  - Point-earning tasks (invites, trading rebates, Academy courses, strategy creation)
+    are multi-day and mostly off-page; points threshold required before any claim
+  - Trading-based tasks require exchange/CEX API keys and real capital, which cannot
+    be automated safely
+  - Wallet connect requires an injected wallet extension (OKX/MetaMask/Binance/Gate/Bitget)
+    with human approval popups
+  - TGE countdown gates actual token claim; claim contract call may become available
+    only at TGE
+  - Cannot verify from page text whether claim is a signed message (login) or an on-chain
+    claim tx
+  reconned_at: '2026-08-01T10:15:00Z'
   verdict: null
 - project: Abstract
-  recipe_hash: sha256:4e225ef865edfe63a7cb5600a562e158f23a6fe185e53e994c8ec85757c84511
+  recipe_hash: sha256:e23a54db463fc0ac19e0566dc742ba65ed92176ae4241ec5a3f1ba99a193c15e
   entry_url: https://abs.xyz/
-  chain: Abstract
+  chain: Abstract (zkSync-based Ethereum L2)
   signature_kind: approve
   approve_unlimited: false
-  capital_required_usd: 10.0
+  capital_required_usd: 25.0
   steps:
   - action: goto
     target: https://abs.xyz/
   - action: click
-    target: Add Network to Wallet
+    target: Enter Portal 버튼
+  - action: wait
+    target: 포털(portal.abs.xyz) 로드 완료
+  - action: wallet_connect
+    target: Abstract Global Wallet 로그인/가입 (이메일 또는 소셜 + passkey 생성)
+  - action: wallet_sign
+    target: AGW 세션/로그인 인증 서명
+  - action: click
+    target: Bridge Funds (abs.xyz 상단 네비 또는 포털 내 Bridge)
   - action: wallet_approve
-    target: Wallet prompt to add/switch to the Abstract network
+    target: L1→Abstract 브릿지 입금 트랜잭션 승인 (가스용 ETH)
+  - action: wait
+    target: 브릿지 자금 Abstract 네트워크 도착
   - action: click
-    target: Enter Portal
-  - action: wait
-    target: Portal login screen at portal.abs.xyz
-  - action: wallet_connect
-    target: Connect wallet / create Abstract Global Wallet (email, social, or passkey
-      login)
-  - action: wallet_sign
-    target: Sign-in message to authenticate the session with the Portal
-  - action: goto
-    target: https://abs.xyz/ then click Bridge Funds
-  - action: wait
-    target: Bridge page load (bridge.abs.xyz)
-  - action: wallet_connect
-    target: Connect source-chain (Ethereum mainnet) wallet on the bridge
-  - action: fill
-    target: Bridge amount field — approximately 0.003 ETH (~$10)
+    target: '포털 Discover 탭에서 스포트라이트 앱 (예: Moonsheep, Gigling) Visit'
   - action: wallet_approve
-    target: Token/bridge contract approval if bridging an ERC-20 instead of native
-      ETH
-  - action: wallet_sign
-    target: Confirm the L1 deposit transaction to bridge funds to Abstract
+    target: 앱 내 상호작용 트랜잭션 승인 (거래/게임 플레이 등 XP 적립 활동)
+  - action: click
+    target: 포털 프로필 → 소셜 계정(X/Discord) 연동
   - action: wait
-    target: Deposit finalization and balance appearing on Abstract (several minutes)
-  - action: click
-    target: Explore Portal / Discover section to browse ecosystem apps
-  - action: click
-    target: A spotlight app (e.g. Moonsheep Space Exploration or Gigling Racing) 'Visit'
-      button
-  - action: wallet_connect
-    target: Connect Abstract Global Wallet to the ecosystem app
-  - action: wallet_sign
-    target: Perform at least one onchain interaction in the app (mint, trade, or game
-      action) to record mainnet activity
-  - action: click
-    target: Portal social/profile section — link X/Twitter account
-  - action: goto
-    target: https://x.com/abstractchain
-  - action: click
-    target: Follow
-  - action: goto
-    target: Abstract Discord invite linked in the site footer
-  - action: click
-    target: Join server and complete verification
-  - action: wait
-    target: Repeat Portal browsing, streaming, and onchain app interactions periodically
-      to accumulate activity
+    target: XP 반영 확인 후 매일 반복 상호작용
   automatable: partial
   blockers:
-  - No explicit airdrop or points program is announced on abs.xyz; the airdrop is
-    speculative and eligibility criteria are unpublished
-  - Portal access historically gated by an invite code / Abstract Global Wallet creation
-    which may require social (X) login and cannot be reliably automated
-  - Abstract Global Wallet onboarding uses passkey/email/social auth flows that are
-    not automatable headlessly
-  - Bridging funds from L1 requires pre-funded ETH on Ethereum mainnet and incurs
-    variable gas
-  - Social activity (X follow, Discord join) requires human-owned accounts and is
-    subject to anti-bot enforcement
-  - Streaming/badge/reward mechanics inside the Portal are dynamic and may change
-    without notice
-  reconned_at: '2026-08-01T09:53:14Z'
+  - Abstract Global Wallet 가입은 이메일/소셜(passkey) 기반 로그인으로, 브라우저 자동화로 통과하기 어려운 OAuth/passkey
+    단계 포함
+  - 포털 XP는 앱 사용·스트리밍 시청·소셜 연동 등 사람 판단이 필요한 상호작용에 따라 지급되며 명시적 규칙이 비공개
+  - Discord/X 계정 연동 및 인간 검증(캡차) 가능성
+  - XP 획득에 실제 온체인 거래가 필요해 브릿지된 ETH 가스비 필요 (금액은 활동량에 따라 변동)
+  - 에어드랍 여부·기준이 공식 확정 공지된 바 없음 (KNOWN은 커뮤니티 추정)
+  reconned_at: '2026-08-01T10:15:00Z'
   verdict: null
 - project: GRVT
-  recipe_hash: sha256:203075510b9bbaf4c1728c19bd0250fc413300b7cc69743ed9faf227b6c366ec
+  recipe_hash: sha256:edc2a8697cc7fbe27d6a372c6e6441c862e2e985eac70f0fa4f264ac6b376f5f
   entry_url: https://grvt.io/
-  chain: Grvt zkSync Hyperchain (ZK Stack, Ethereum L2)
+  chain: GRVT zkSync Hyperchain (ZK Stack, Ethereum L2)
   signature_kind: approve
   approve_unlimited: false
-  capital_required_usd: 50.0
+  capital_required_usd: 0.0
   steps:
   - action: goto
     target: https://grvt.io/
   - action: click
-    target: '''Sign up'' button in the top-right navigation (or ''Log in'' if an account
-      already exists)'
+    target: '''Sign up'' / ''Log in'' button in the top navigation'
   - action: fill
-    target: Email address and password fields in the signup form; submit and complete
-      email verification
+    target: email / account credentials (or choose social login) in the auth modal
   - action: wait
-    target: Redirect to the authenticated Grvt app dashboard (app/exchange view) to
-      load
+    target: email verification code delivery and account creation to complete
   - action: wallet_connect
-    target: Connect Wallet / Link wallet control in the Grvt account or deposit panel
-      (MetaMask / WalletConnect)
+    target: connect EVM wallet (MetaMask/WalletConnect) when prompted to link an address
+      to the GRVT account
   - action: wallet_sign
-    target: Sign the Grvt account-binding / authentication message requested on wallet
-      link (SIWE-style login signature, no gas)
+    target: sign the GRVT account registration / session-key authentication message
+  - action: goto
+    target: the GRVT rewards or airdrop claim page reachable from the logged-in dashboard
+      (e.g. the 'More' nav menu or a rewards/points section) — exact URL must be confirmed
+      after login
+  - action: wait
+    target: eligibility and allocation check to load
   - action: click
-    target: '''Deposit'' in the Grvt account panel and select USDT/USDC plus the source
-      chain'
+    target: '''Claim'' button for the token allocation'
   - action: wallet_approve
-    target: ERC-20 approve of the exact USDT/USDC deposit amount to the Grvt deposit/bridge
-      contract (do not grant unlimited allowance)
+    target: token/contract approval for the claim or bridge contract, if requested
+      (approve exact claim amount, not unlimited)
   - action: wallet_sign
-    target: Confirm the deposit/bridge transaction to fund the Grvt trading account
-      (gas required)
+    target: confirm the on-chain claim transaction in the wallet
   - action: wait
-    target: Deposit credited to Grvt balance and account fully activated
-  - action: click
-    target: Airdrop / Rewards / Points entry point in the app navigation or the 'Competitions'
-      section to locate the claim page
-  - action: click
-    target: '''Claim'' button on the airdrop page to claim the allocated tokens'
-  - action: wallet_sign
-    target: Sign or confirm the claim transaction / claim authorization prompted by
-      the Grvt claim flow
-  - action: wait
-    target: Claim confirmation and token balance appearing in the Grvt account or
-      destination wallet
+    target: transaction confirmation and claimed balance to appear
   automatable: manual
   blockers:
-  - Landing page contains no airdrop/claim UI — no CLAIM LIVE element, no reward or
-    points section is present in the fetched page text; the claim flow could not be
-    located or verified
-  - Account creation is mandatory (Sign up / Log in gate) before any wallet or claim
-    interaction
-  - 'Centralized-style onboarding: email/social signup plus likely KYC or region restrictions,
-    and possibly an invite/referral code'
-  - Session-bound authenticated dashboard state cannot be reliably driven headlessly;
-    Cloudflare/anti-bot protection is likely on grvt.io
-  - Claim almost certainly requires depositing USDT/USDC to a Grvt trading account
-    and an ERC-20 approve plus bridge deposit transaction (gas + capital)
-  - Eligibility is snapshot-based on prior trading volume/points — cannot be earned
-    or triggered at claim time
-  - Token contract, claim contract address, and claim deadline are unknown from this
-    page
-  reconned_at: '2026-08-01T09:53:14Z'
+  - The landing page at https://grvt.io/ contains no airdrop, claim, points, or rewards
+    UI in the captured text — only marketing, Trade/Invest/Competitions nav, and Sign
+    up / Log in. The claim entry point could not be verified from this page.
+  - Access is gated behind account creation (Sign up / Log in), typically requiring
+    email or social login plus wallet linkage; GRVT historically also gated access
+    via invite/referral code.
+  - GRVT is a KYC/compliance-gated exchange — identity verification and jurisdiction
+    restrictions likely block automated completion.
+  - Claim eligibility is snapshot-based on prior trading/points activity; a fresh
+    account cannot generate eligibility now.
+  - Deposit/withdrawal and claim flows require an on-chain transaction and likely
+    an ERC-20 token approval to the GRVT bridge/claim contract, plus a session-key
+    or account-registration message signature.
+  - Amount, token contract, claim deadline, and exact claim URL are unconfirmed from
+    the provided page content.
+  reconned_at: '2026-08-01T10:15:00Z'
   verdict: null
 - project: GRVT
   recipe_hash: sha256:abc6be3a211f0c2bfe5383c11781ee6adb74204484594560d78b68cbb10cc26d
@@ -607,7 +575,7 @@ recipes:
   reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
 - project: KOR Protocol
-  recipe_hash: sha256:d91bf2061a87c9d56877963abaeb340581a5c3c9f1439580933ae5d0dd35b0d5
+  recipe_hash: sha256:a7aa588b661b3ed5efbf0dbbf483353098251a65869877d61dff2d6bdcd09d1e
   entry_url: https://korprotocol.io/
   chain: null
   signature_kind: approve
@@ -617,32 +585,231 @@ recipes:
   - action: goto
     target: https://korprotocol.io/
   - action: click
-    target: Get your $KOR ID button (hero or footer CTA)
+    target: Get your $KOR ID
   - action: wait
-    target: KOR ID registration app to load
+    target: KOR ID registration/claim page to load
   - action: wallet_connect
-    target: Connect Wallet on KOR ID app
+    target: Connect Wallet button on KOR ID app
   - action: wallet_sign
     target: Sign-in / ownership verification message
-  - action: fill
-    target: KOR ID profile fields (handle, email, social links) if prompted
-  - action: click
-    target: Create / Claim KOR ID submit button
-  - action: wallet_approve
-    target: Approve any on-chain registration or claim transaction if prompted
   - action: wait
-    target: Confirmation that KOR ID is minted and whitelist/reward status shows claimed
-  automatable: partial
+    target: Whitelist eligibility check result
+  - action: click
+    target: Claim / Check eligibility button
+  - action: wallet_approve
+    target: Claim transaction confirmation in wallet
+  automatable: manual
   blockers:
-  - Landing page shows no claim/whitelist UI — only a 'Get your $KOR ID' CTA; token
-    is explicitly 'coming', so reward claim may not be live on this domain
-  - KOR ID registration happens on an external linked site (KOR ID ↗), flow and required
-    fields not visible from this page
-  - Likely requires social/email account linking or identity verification during KOR
-    ID signup
-  - Chain and contract for any claim are undisclosed; signature type cannot be confirmed
-    without reaching the KOR ID app
-  - Possible whitelist eligibility gate (prior 285k NFT mint / 1M sign-up cohort)
-    that cannot be satisfied retroactively
-  reconned_at: '2026-08-01T09:53:14Z'
+  - Landing page only exposes a 'Get your $KOR ID' CTA; no airdrop claim UI is present
+    on korprotocol.io
+  - Claim/whitelist eligibility flow lives on an external KOR ID subdomain not resolvable
+    from this page text
+  - Chain and token contract not disclosed on the page; token is stated as 'coming'
+  - 'Whitelist-gated: eligibility likely determined by prior KOR/Korus/Beatport activity
+    and cannot be self-served'
+  - Wallet signature requirements unverifiable without loading the KOR ID app
+  reconned_at: '2026-08-01T10:15:00Z'
+  verdict: null
+- project: MoonPay
+  recipe_hash: sha256:4d246e81ad39d9b33afb13288fa8a668ac929dc42efff7f1f0ffbc21fb847593
+  entry_url: https://www.moonpay.com/
+  chain: null
+  signature_kind: none
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://www.moonpay.com/
+  - action: click
+    target: Get Started / Sign up
+  - action: fill
+    target: Email address and password on the signup form
+  - action: wait
+    target: Email verification code delivery, then submit the code
+  - action: wait
+    target: KYC identity verification (ID document + selfie) to reach a verified account
+      state
+  - action: click
+    target: Account / Rewards section entry point for the PayBox feature
+  - action: click
+    target: Add PayBox
+  - action: wait
+    target: PayBox provisioning to complete
+  - action: click
+    target: Connect X (Twitter) account
+  - action: wait
+    target: X OAuth authorization on x.com, then return redirect to MoonPay
+  - action: click
+    target: Claim reward button in the rewards/airdrop panel
+  automatable: manual
+  blockers:
+  - The provided page is MoonPay's general marketing homepage; no airdrop, PayBox,
+    or reward-claim UI appears anywhere in the page text, so the actual entry URL
+    for the campaign is unverified
+  - Account signup requires email verification and almost certainly KYC (MoonPay is
+    a registered MSB with 35M 'verified accounts'), which cannot be automated
+  - X (Twitter) account linking is an OAuth flow on an external domain and typically
+    requires human login/2FA
+  - '''PayBox'' is not present on this page — its location, cost, and whether adding
+    it requires a funded card/bank or a minimum purchase is unknown'
+  - Anti-bot/fraud controls on a regulated fiat on-ramp make automated interaction
+    likely to trigger account restriction
+  - Claim step may require a payout wallet address and possibly an on-chain signature;
+    unverified from this page
+  reconned_at: '2026-08-01T10:15:00Z'
+  verdict: null
+- project: Renaiss Protocol
+  recipe_hash: sha256:1111981d992cc37562b598a495fe5917c366f43006febbef9d5f7be95e36329a
+  entry_url: https://www.renaiss.xyz/
+  chain: null
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 48.0
+  steps:
+  - action: goto
+    target: https://www.renaiss.xyz/
+  - action: click
+    target: Log in 버튼
+  - action: wallet_connect
+    target: 로그인 모달 — 지갑 연결 또는 계정 생성
+  - action: wallet_sign
+    target: 로그인 인증 서명 (SIWE 형식 메시지 서명 가능성)
+  - action: click
+    target: 사이드바 Gacha 메뉴
+  - action: click
+    target: OMEGA 팩의 'Rip a Pack for $48' 버튼
+  - action: wallet_approve
+    target: 결제 토큰 지출 승인 (팩 가격 한도)
+  - action: wallet_sign
+    target: 팩 구매 트랜잭션 서명
+  - action: wait
+    target: 온체인 개봉 결과 및 카드 공개 대기
+  - action: click
+    target: Marketplace 메뉴 — 리스팅/오퍼 등 추가 활동 수행
+  - action: click
+    target: Profile 메뉴 — 활동 기록 및 화이트리스트 관련 표시 확인
+  automatable: manual
+  blockers:
+  - 에어드랍이 공식 확정된 것이 아니라 '잠재 화이트리스트' 단계 — 페이지에 airdrop/points/quest 관련 UI나 자격 조건이 전혀
+    노출되지 않음
+  - 참여 기준이 공개되지 않아 어떤 행동(가챠 구매/마켓플레이스 거래/보유)이 적격 활동인지 확인 불가
+  - 실질 참여에는 유료 팩 구매가 필요 — 최저 OMEGA 팩 $48, Renacrypt $88, Eden $150 (Emerald는 Sold
+    Out)
+  - 로그인 방식이 지갑 연결인지 이메일/소셜 계정인지 페이지 텍스트에서 확정 불가 — 체인도 명시되지 않음
+  - 가챠는 확률형 상품이라 자동화 시 자금 손실 위험이 크고, 결제 단계에서 KYC/결제수단 등록이 요구될 가능성
+  - Lending/Borrowing/Leaderboard는 'Coming soon' 상태로 포인트 적립 경로가 아직 미개방
+  reconned_at: '2026-08-01T10:15:00Z'
+  verdict: null
+- project: Alberich Token
+  recipe_hash: sha256:1d7b8787cf5e4320d616af6da1bd95cd347ef4ebcd3d317f0cecfcd22ee1da4d
+  entry_url: https://www.alberichtoken.io/
+  chain: null
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 0.0
+  steps:
+  - action: goto
+    target: https://www.alberichtoken.io/
+  - action: click
+    target: IDO Info nav link
+  - action: click
+    target: Kommunitas IDO link on the IDO Info section
+  - action: wait
+    target: Kommunitas project page to load
+  - action: wallet_connect
+    target: Kommunitas launchpad wallet connect button
+  - action: wallet_sign
+    target: Kommunitas login / account verification message
+  - action: click
+    target: IDO participation / buy allocation button for ALBRH
+  - action: fill
+    target: contribution amount input (stablecoin)
+  - action: wallet_approve
+    target: stablecoin spend approval for the Kommunitas IDO contract (set to exact
+      contribution amount)
+  - action: wallet_sign
+    target: IDO contribution transaction
+  - action: wait
+    target: token launch / claim window opening 2026-08-11
+  - action: click
+    target: Claim ALBRH button on Kommunitas claim page
+  - action: wallet_sign
+    target: claim transaction
+  automatable: manual
+  blockers:
+  - No official airdrop or task-based campaign found on the page; the only participation
+    path is a paid Kommunitas IDO (started 2026-07-28), not a free airdrop
+  - Page content is marketing/navigation only (About, Overview, Whitepaper, Acquire,
+    DEX Links, IDO Info, FAQs) with no claim, quest, or wallet-connect widget in the
+    extracted text
+  - IDO is hosted off-site on Kommunitas, which requires a separate account, KYC,
+    and staked KOM tier for allocation — capital amount undetermined
+  - Token launch not until 2026-08-11; no claim interface exists yet
+  - 'Chain not stated on the page (Kommunitas is multi-chain: Polygon/BSC), so network
+    and token contract are unconfirmed'
+  reconned_at: '2026-08-01T10:15:00Z'
+  verdict: null
+- project: Arcus
+  recipe_hash: sha256:8eae1b269d6f787e10a1cb388662a9a697b29ae3558e967d2dcbaf56cfe0f97f
+  entry_url: https://waitlist.arcus.xyz/
+  chain: Robinhood Chain
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 50.0
+  steps:
+  - action: goto
+    target: https://arcus.xyz/
+  - action: click
+    target: Join Perps Waitlist
+  - action: goto
+    target: https://waitlist.arcus.xyz/
+  - action: wallet_connect
+    target: Connect Wallet button on waitlist.arcus.xyz
+  - action: wallet_sign
+    target: Sign-in / ownership verification message for the connected wallet
+  - action: click
+    target: Connect X (Twitter) account
+  - action: fill
+    target: X OAuth login credentials and authorize the Arcus app
+  - action: wait
+    target: Waitlist profile to load with computed position/score
+  - action: wallet_connect
+    target: Add additional wallets to aggregate prior trading history (optional)
+  - action: wallet_sign
+    target: Ownership verification message for each additional wallet
+  - action: click
+    target: Referral link / copy referral code and share with validated traders (optional)
+  - action: goto
+    target: https://arcus.xyz/ — Trade Spot (Spot Beta, open to all eligible users)
+  - action: wallet_connect
+    target: Connect wallet to the Arcus spot trading app
+  - action: click
+    target: Deposit — fund account with cash or crypto
+  - action: wallet_approve
+    target: Token allowance for deposit/trading contract (bounded amount, not unlimited)
+  - action: wallet_sign
+    target: Deposit transaction confirmation
+  - action: wait
+    target: Deposit to be credited to the Arcus account
+  - action: fill
+    target: Spot order form — select Stock Token market, side, quantity
+  - action: wallet_sign
+    target: Order placement signature / trade transaction
+  - action: wait
+    target: Spot volume to accrue and count toward Perps Waitlist position; cohort
+      invite email/notification
+  automatable: manual
+  blockers:
+  - Requires linking an X (Twitter) account via OAuth — human interaction needed
+  - 'Geo-restricted: not available in the United States, United Kingdom, Canada, or
+    other restricted jurisdictions'
+  - Waitlist position depends on pre-existing on-chain perps trading history (dYdX,
+    Hyperliquid, Lighter) and RWA volume — cannot be created retroactively
+  - Perps access is cohort-gated and rolls out by invitation after joining the waitlist
+  - Referral component requires recruiting other validated traders
+  - Spot trading (which now counts toward waitlist position) requires funded deposits
+    via cash or crypto on-ramp
+  - Exact waitlist wallet-signature/message flow is not disclosed on the landing page;
+    token approvals for spot trading may be required at trade time
+  reconned_at: '2026-08-01T10:15:00Z'
   verdict: null
