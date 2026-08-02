@@ -216,16 +216,58 @@ blocker 분포(12건 기준, 복수 해당): 이메일 가입·인증 **10**, �
 
 **A갈래 상한**: 사람 게이트 blocker가 하나도 없는 레시피 **1/12 (~8%)**.
 
+### 스텝 단위 자동화 태그 + 실행 상한 (2026-08-02, spec §12.5 — 미커밋)
+
+**사용자 결정: §12.3 B갈래 채택.** §12.4의 C+A(실행 트랙 동결)를 대체하고 `execute/` 동결
+조항을 해제한다. 근거는 §8.1.1 재측정 — warm 세션에서 `partial`이 7→12로 늘어 **자동 수행
+가능 구간이 실제로 길어졌는데**, `full`은 0이고 그 원인이 자본·지역·투기성이라
+**`full`을 기다리는 것 자체가 잘못된 목표**였다.
+
+§12.2가 "prefix 실행 구현 불가"로 판정했던 근본 원인(**스텝에 자동화 가능 여부가 인코딩돼
+있지 않음**)을 정면으로 없앴다.
+
+| | 종전 | §12.5 |
+|---|---|---|
+| `Step` | `(action, target)` | **`+ automatable: bool, blocker: str\|None`** (기본 False) |
+| 실행 상한 | 없음 | **`auto_prefix_len`** = 선두 **연속** 자동 스텝 수 |
+| guard 규칙 6 | `automatable != "full"` 이진 거부 | **상한**. `0`이면 종전대로 `pointing_only`, `>0`이면 통과 |
+| 실행 | 전부 아니면 전무 | `steps[:ceiling]` 수행 후 **`handoff`** (`next_step`+`blocker` 노출) |
+| 레시피 스칼라 `automatable` | 게이트 판정 | **신호로만 유지** (Track A·council 입력) |
+
+**의도적으로 안 바꾼 것**:
+- **규칙 1~5 전부 그대로** — 앵커 부재·무제한 approve·자본·잔고·체인. 이번에 연 것은
+  규칙 6 하나뿐이고, 그건 원래 "위험" 판정이 아니라 "실행 대상 분류"였다.
+- **지갑 스텝 중단 유지** — 상한 안이어도 `wallet_*`면 `aborted`. 실효 상한은
+  `min(auto_prefix, 첫 지갑 스텝)`. 상한은 게이트를 여는 장치이지 서명 정책이 아니다.
+- **구 `actions.yaml` 마이그레이션 안 함** — 태그 없는 레시피에 실행 권한을 소급 부여하는
+  것이 정확히 §12.2가 경고한 잘못된 안전 신호다. 실측 확인: **16건 전부 `ceiling=0`**
+  (218 스텝 중 `automatable=True` 0개) → 종전과 동일하게 포인팅 전용. 로테이션(§5.4)이
+  재정찰하면서 자연히 채운다.
+
+**보수적 파싱**: 스텝 태그는 `is True`만 인정한다(문자열 `"true"`는 스키마 위반 신호).
+드라이버가 모르는 action은 모델 판정과 무관하게 prefix를 끊는다.
+
+`ceiling`은 `rejected`·`pointing_only`를 포함한 **전 상태 응답에 실린다** — 빠지면 prefix
+분포 표본이 자동화 가능한 쪽으로 편향된다.
+
+**234 passed** (212 → +22), ruff clean.
+
 ### 다음 액션
 
-1. **§12.3 세 갈래 결정 (사용자 몫)** — A 대상군 교체 / B human-in-the-loop / C 실행 트랙 동결.
-   제품 정의가 갈리므로 임의 선택하지 않았다. spec §12.3에 각 갈래의 비용 정리.
-2. **`airdropalert.com` 소스 결정 (사용자 몫)** — detail_url 100%인데 `source_url` 0% 재확인.
-3. **엔트리포인트 + cron 미등록** (council 1·2번, 사용자 미선택) — `run_pipeline` 호출자가
-   `tests/`뿐이고 crontab이 비어 있다. Track A도 2026-05-25 이후 안 돈다.
-4. **앵커링이 누적 KB를 안 본다** — spec §5.1에 정정만 기록. 룰(2도메인 합의)은 안 바꾸고
+1. **라이브 1회 — §12.5.6 측정** (가장 급함). 코드가 열렸을 뿐 **실측이 0건**이다. 볼 것:
+   (a) 모델이 per-step 판정을 실제로 내는가, 전건 `false`로 뭉개는가
+   (b) `ceiling > 0` 레시피 비율과 `ceiling / len(steps)` 분포
+   (c) **§12.2 대조** — 지갑 기준 prefix(28%)와 스텝 태그 기준의 차이. `3DOS`가 15가 아니라
+   2~3으로 나오면 표현력 문제가 해소된 것이다. **desk 추정 금지** (§8.1.1의 31% 사고).
+2. **인계 UX 미구현** — `handoff` 응답은 만들었지만 사람에게 **전달되지 않는다.** broadcast나
+   알림에 `next_step`·`blocker`를 노출하는 배선이 없다. B갈래의 나머지 절반.
+3. **버너 지갑 + 소셜/이메일 프로필 1회 headful 셋업** (사람 몫) — `wallet_page`는 정의만
+   있고 호출부 0건, `.wallet_profile` 없음. 이게 없으면 live 실행 자체가 불가.
+4. **`airdropalert.com` 소스 결정 (사용자 몫)** — detail_url 100%인데 `source_url` 0/49.
+5. **엔트리포인트** — `run_pipeline` 호출자가 `tests/`뿐. cron은 사용자가 불필요하다고 결정
+   (하루 한 번 명령어 실행 형태)이지만 그 명령어가 아직 없다.
+6. **앵커링이 누적 KB를 안 본다** — spec §5.1에 정정만 기록. 룰(2도메인 합의)은 안 바꾸고
    입력 범위만 넓히는 변경이지만 미실행.
-5. 기존 broadcast(`prompts/airdrop_digest.md`) 입력을 KB로 갈아끼우는 배선은 **아직 안 함**.
 
 ### 잘 작동한 것
 
@@ -241,20 +283,22 @@ blocker 분포(12건 기준, 복수 해당): 이메일 가입·인증 **10**, �
 
 ---
 
-**마지막 갱신**: 2026-08-01 KST (링크 예산 수정 → 5차 라이브 → council → 축적 루프 수리).
+**마지막 갱신**: 2026-08-02 KST (푸터 정정 + §12.3 B갈래 착수).
 **마지막 작업자**: ljk9121 (leejk206 GitHub identity)
-**현재 HEAD**: `f318f3e` (master, pushed) — `d27f87c` 구현 / `6cfcfef` 결함 수정 4건 /
-`16e19a4` enrichment 계측 / `d1cdc52`·`4b276d6` 레시피 데이터 / `f318f3e` 문서.
+**현재 HEAD**: `180f172` (master, origin과 동기화, 워킹트리 clean) — 2026-08-01 세션 커밋 7건
+(`43f8f29` 링크 예산+축적 루프 / `fd757c1`·`e1f099f` 레시피 데이터 / `738c2b1` council /
+`a45c302` Track B→A 배선 / `47f49d0` auto-pin 만료 수정 / `cc074a9` warm 세션 정찰)
+전부 push 완료. 테스트 **212 passed**, ruff clean.
 
-**미커밋 변경 있음** (2026-08-01, 사용자 승인 대기):
-- `src/collectors/extract.py` — 링크 예산(§4.5) + `_fact_id` 안정화(§5.1.1)
-- `src/kb/store.py` — `put()` 병합
-- `src/selection.py` — 선정 재설계(§5.4)
-- `src/orchestrator.py` — `reconned` 배선
-- `tests/` 3파일 — 신규 13건 (총 193 passed)
-- `docs/specs/…` — §4.5 파급 실측 / §5.1 정정 / §5.1.1·§5.4 신설
-- `docs/council/2026-08-01-*.md` (신규), `actions.yaml`(레시피 6→12), 이 문서
-- `cache/kb.yaml`은 gitignore. 마이그레이션 적용됨 (507→227). 백업은 세션 scratchpad
+**미커밋 변경** (2026-08-02, 사용자 승인 대기) — §12.5 스텝 단위 자동화 태그:
+- `src/airdropbot/models.py` — `Step.automatable`·`blocker`, `auto_prefix_len`
+- `src/airdropbot/recon/{scout,store}.py` — per-step 판정 프롬프트·파싱, 태그 영속화
+- `src/airdropbot/execute/{guard,runner}.py` — 규칙 6 → 실행 상한, `handoff` 상태
+- `tests/` 4파일 — 신규 22건 (총 **234 passed**)
+- `docs/specs/2026-07-28-*.md` — §12.5 신설, §5.2·§6·§8 갱신
+- `NEXT.md` — 푸터 정정(2026-08-01 "승인 대기" 목록은 이미 전부 커밋된 stale이었다) + 이 절
+
+`actions.yaml`은 **의도적으로 안 건드렸다** (마이그레이션 없음, 다음 라이브가 재작성).
 
 다음 세션 시작 시 **§0 → `docs/specs/2026-07-28-*` → `docs/plans/2026-07-28-*`** 순으로 읽으면 v1.0 컨텍스트 복원 가능.
 기존 broadcast 경로(v0.11)는 §1~§4 + `prompts/*.md` 참조.

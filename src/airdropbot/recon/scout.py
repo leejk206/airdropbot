@@ -27,9 +27,18 @@ _SYSTEM = (
     '"entry_url" (string), "chain" (string|null), "signature_kind" '
     '(one of "none","message","tx","approve"), "approve_unlimited" (bool), '
     '"capital_required_usd" (number), "automatable" (one of "full","partial","manual"), '
-    '"blockers" (string array), "steps" (array of {"action","target"}). '
+    '"blockers" (string array), "steps" (array of '
+    '{"action","target","automatable","blocker"}). '
     "Allowed actions: goto, click, fill, wait, wallet_connect, wallet_approve, "
     "wallet_sign. "
+    # spec §12.5 — 레시피 스칼라만으로는 "어디까지 자동으로 갈 수 있는가"를 기계가
+    # 알 수 없다. 실행 상한은 이 per-step 판정에서만 나온다.
+    "PER-STEP JUDGEMENT: for EACH step also return "
+    '"automatable" (boolean — can the automation perform this exact step unattended '
+    'in the execution context described below?) and "blocker" (string|null — if '
+    "automatable is false, one short phrase naming what a human must do). Judge every "
+    "step on its own; do not copy the recipe-level rating down onto the steps. "
+    '"automatable" must be a JSON boolean, not a string. '
     # spec §8.1 — 이 문단이 없으면 모델이 차가운 브라우저를 가정하고 로그인·메일
     # 인증을 사람 스텝으로 세어 automatable을 근거 없이 강등한다.
     "EXECUTION CONTEXT: the automation runs in a persistent browser profile that is "
@@ -105,9 +114,22 @@ def _parse_steps(raw_steps: list) -> tuple[tuple[Step, ...], bool]:
             saw_unknown = True
             continue
         action = (item.get("action") or "").strip()
-        if action not in ACTIONS:
+        known_action = action in ACTIONS
+        if not known_action:
             saw_unknown = True
-        steps.append(Step(action=action, target=(item.get("target") or "").strip()))
+        # `is True`인 이유: 문자열 "true"·1 같은 truthy 값은 모델이 스키마를 안 지켰다는
+        # 신호다. 그런 응답에 실행 상한을 주지 않는다. 그리고 드라이버가 모르는
+        # action은 애초에 수행할 수 없으므로 판정과 무관하게 prefix를 끊는다. spec §12.5.
+        automatable = known_action and item.get("automatable") is True
+        blocker = item.get("blocker")
+        steps.append(
+            Step(
+                action=action,
+                target=(item.get("target") or "").strip(),
+                automatable=automatable,
+                blocker=(str(blocker).strip() or None) if blocker else None,
+            )
+        )
     return tuple(steps), saw_unknown
 
 

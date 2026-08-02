@@ -28,13 +28,21 @@ def run_recipe(
     """레시피를 실행한다. 기본은 dry-run으로 브라우저를 구동하지 않는다.
 
     Returns:
-        ``{"status": "dry_run"|"rejected"|"pointing_only"|"executed"|"aborted", ...}``
+        ``{"status": "dry_run"|"rejected"|"pointing_only"|"executed"|"handoff"|"aborted",
+        "ceiling": int, ...}`` — ``handoff``는 실행 상한까지 수행하고 사람에게 넘긴
+        상태다 (spec §12.5.4).
 
     Raises:
         ValueError: ``dry_run=False``인데 ``page`` 또는 ``llm``이 없을 때.
     """
     guard = prefilter(recipe, facts, limits, wallet_balance_usd=wallet_balance_usd)
-    base = {"project": recipe.project, "recipe_hash": recipe_hash(recipe)}
+    # ``ceiling``은 전 상태에 싣는다 — 거부·포인팅 건이 빠지면 prefix 분포 표본이
+    # 자동화 가능한 쪽으로 편향된다. spec §12.5.6.
+    base = {
+        "project": recipe.project,
+        "recipe_hash": recipe_hash(recipe),
+        "ceiling": guard.ceiling,
+    }
 
     if not guard.allowed:
         return {
@@ -58,7 +66,7 @@ def run_recipe(
     if not verdict.passed:
         return {**base, "status": "rejected", "issues": list(verdict.issues)}
 
-    return {**base, **_drive(page, recipe)}
+    return {**base, **_drive(page, recipe, ceiling=guard.ceiling)}
 
 
 def plan_of(recipe: Recipe) -> list[str]:
@@ -66,10 +74,15 @@ def plan_of(recipe: Recipe) -> list[str]:
     return [f"{s.action} -> {s.target}" for s in recipe.steps]
 
 
-def _drive(page, recipe: Recipe) -> dict:
-    """스텝을 순서대로 실행. 지갑 서명 스텝을 만나면 v1은 중단한다."""
+def _drive(page, recipe: Recipe, *, ceiling: int) -> dict:
+    """상한까지 스텝을 실행한다. 지갑 서명 스텝을 만나면 v1은 중단한다.
+
+    ``ceiling``을 넘는 스텝은 **건드리지 않는다** — 사람이 해야 하는 스텝을 실행기가
+    시도하면 가짜 값을 채우고 실패한다(spec §12.2의 3DOS 사례). 상한에서 멈춘 것은
+    실패가 아니라 ``handoff``다.
+    """
     done: list[str] = []
-    for step in recipe.steps:
+    for step in recipe.steps[:ceiling]:
         if step.action in _WALLET_ACTIONS:
             return {
                 "status": "aborted",
@@ -85,6 +98,16 @@ def _drive(page, recipe: Recipe) -> dict:
                 "completed": done,
             }
         done.append(f"{step.action} -> {step.target}")
+
+    remaining = recipe.steps[ceiling:]
+    if remaining:
+        nxt = remaining[0]
+        return {
+            "status": "handoff",
+            "completed": done,
+            "next_step": f"{nxt.action} -> {nxt.target}",
+            "blocker": nxt.blocker,
+        }
     return {"status": "executed", "completed": done}
 
 

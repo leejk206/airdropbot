@@ -67,7 +67,8 @@ _RECIPE_JSON = (
     '{"entry_url": "https://citrea.xyz/faucet", "chain": "citrea-testnet",'
     ' "signature_kind": "none", "approve_unlimited": false, "capital_required_usd": 0,'
     ' "automatable": "full", "blockers": [],'
-    ' "steps": [{"action": "goto", "target": "https://citrea.xyz/faucet"}]}'
+    ' "steps": [{"action": "goto", "target": "https://citrea.xyz/faucet",'
+    ' "automatable": true, "blocker": null}]}'
 )
 
 _BOTH_SOURCES = [

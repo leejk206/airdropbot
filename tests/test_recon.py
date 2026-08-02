@@ -1,6 +1,6 @@
 from airdropbot.collectors.browser import RenderedPage
 from airdropbot.llm import FakeLLM
-from airdropbot.models import Fact, Recipe, Step
+from airdropbot.models import Fact, Recipe, Step, auto_prefix_len
 from airdropbot.recon.scout import MIN_PAGE_TEXT_CHARS, scout_recipe
 from airdropbot.recon.store import load_recipes, save_recipes
 
@@ -142,6 +142,59 @@ def test_scout_keeps_conservative_coercion_under_warm_session():
     assert r.automatable == "manual"
 
 
+# --- 스텝 단위 판정 (spec §12.5) --------------------------------------------
+
+_TAGGED = """{"entry_url": "https://citrea.xyz/faucet", "chain": "citrea-testnet",
+ "signature_kind": "message", "approve_unlimited": false, "capital_required_usd": 0,
+ "automatable": "partial", "blockers": ["초대 코드"],
+ "steps": [{"action": "goto", "target": "https://citrea.xyz/faucet",
+            "automatable": true, "blocker": null},
+           {"action": "fill", "target": "#code=INVITE",
+            "automatable": false, "blocker": "초대 코드 미보유"},
+           {"action": "click", "target": "Request", "automatable": true}]}"""
+
+
+def test_scout_parses_per_step_tags():
+    r = scout_recipe(_FACT, _PAGE, FakeLLM([_TAGGED]), now="x")
+    assert [s.automatable for s in r.steps] == [True, False, True]
+    assert r.steps[1].blocker == "초대 코드 미보유"
+    assert auto_prefix_len(r) == 1
+
+
+def test_scout_prompt_demands_per_step_judgment():
+    llm = FakeLLM([_TAGGED])
+    scout_recipe(_FACT, _PAGE, llm, now="x")
+    system = llm.calls[0][0].lower()
+    assert "per-step" in system or "each step" in system
+    assert '"blocker"' in system
+
+
+def test_scout_defaults_untagged_step_to_not_automatable():
+    """모델이 태그를 빠뜨리면 사람 스텝으로 본다 (spec §4 보수적 강제)."""
+    r = scout_recipe(_FACT, _PAGE, FakeLLM([_GOOD]), now="x")
+    assert [s.automatable for s in r.steps] == [False, False]
+    assert auto_prefix_len(r) == 0
+
+
+def test_scout_rejects_non_boolean_step_tag():
+    """문자열 "true"는 truthy지만 모델이 스키마를 지키지 않았다는 신호다."""
+    raw = _TAGGED.replace(
+        '"automatable": true, "blocker": null', '"automatable": "true", "blocker": null'
+    )
+    assert '"automatable": "true"' in raw, "픽스처 치환이 빗나갔다"
+    r = scout_recipe(_FACT, _PAGE, FakeLLM([raw]), now="x")
+    assert r.steps[0].automatable is False
+
+
+def test_scout_marks_unknown_action_step_as_not_automatable():
+    """드라이버가 모르는 action은 수행할 수 없다 — 모델이 뭐라 하든 prefix를 끊어야 한다."""
+    raw = _TAGGED.replace('"action": "goto"', '"action": "teleport"')
+    r = scout_recipe(_FACT, _PAGE, FakeLLM([raw]), now="x")
+    assert r.steps[0].automatable is False
+    assert auto_prefix_len(r) == 0
+    assert r.automatable == "manual"
+
+
 def test_scout_tolerates_json_fence():
     r = scout_recipe(_FACT, _PAGE, FakeLLM([f"```json\n{_GOOD}\n```"]), now="x")
     assert r.entry_url == "https://citrea.xyz/faucet"
@@ -171,3 +224,65 @@ def test_save_recipes_writes_recipe_hash_and_null_verdict(tmp_path):
     text = path.read_text(encoding="utf-8")
     assert "recipe_hash" in text
     assert "verdict: null" in text
+
+
+# --- 스텝 태그 영속화 (spec §5.2 / §12.5.2) ---------------------------------
+
+
+def test_recipes_roundtrip_preserves_step_tags(tmp_path):
+    path = tmp_path / "actions.yaml"
+    recipe = Recipe(
+        project="Citrea",
+        entry_url="https://citrea.xyz/faucet",
+        steps=(
+            Step("goto", "https://citrea.xyz/faucet", automatable=True),
+            Step("fill", "#code=INVITE", automatable=False, blocker="초대 코드 미보유"),
+        ),
+    )
+    save_recipes(path, [recipe])
+
+    loaded = load_recipes(path)[0]
+    assert loaded.steps[0].automatable is True
+    assert loaded.steps[0].blocker is None
+    assert loaded.steps[1].automatable is False
+    assert loaded.steps[1].blocker == "초대 코드 미보유"
+
+
+def test_legacy_recipe_without_tags_loads_as_not_automatable(tmp_path):
+    """구 ``actions.yaml``에 실행 권한을 소급 부여하지 않는다 — spec §12.5.2.
+
+    태그 없는 레시피를 자동화 가능으로 읽으면 정확히 §12.2가 경고한 잘못된 안전
+    신호가 된다. 읽히기는 하되 실행 상한은 0이어야 한다.
+    """
+    path = tmp_path / "actions.yaml"
+    path.write_text(
+        "recipes:\n"
+        "  - project: Legacy\n"
+        "    entry_url: https://legacy.io\n"
+        "    steps:\n"
+        "      - {action: goto, target: 'https://legacy.io'}\n"
+        "      - {action: click, target: 'Claim'}\n"
+        "    automatable: full\n",
+        encoding="utf-8",
+    )
+
+    loaded = load_recipes(path)[0]
+    assert [s.automatable for s in loaded.steps] == [False, False]
+    assert auto_prefix_len(loaded) == 0
+
+
+def test_save_recipes_writes_step_tags(tmp_path):
+    path = tmp_path / "actions.yaml"
+    save_recipes(
+        path,
+        [
+            Recipe(
+                project="P",
+                entry_url="https://p.io",
+                steps=(Step("goto", "https://p.io", automatable=True),),
+            )
+        ],
+    )
+    text = path.read_text(encoding="utf-8")
+    assert "automatable: true" in text
+    assert "blocker" in text

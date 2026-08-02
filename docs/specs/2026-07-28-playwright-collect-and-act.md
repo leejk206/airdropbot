@@ -372,21 +372,24 @@ recipes:
     signature_kind: none            # none | message | tx | approve
     capital_required_usd: 0
     steps:
-      - {action: goto,           target: "https://citrea.xyz/faucet"}
-      - {action: click,          target: "Connect Wallet"}
-      - {action: wallet_approve, target: "connect"}
-      - {action: click,          target: "Request tokens"}
-    automatable: full               # full | partial | manual
+      - {action: goto,           target: "https://citrea.xyz/faucet", automatable: true,  blocker: null}
+      - {action: click,          target: "Connect Wallet",            automatable: true,  blocker: null}
+      - {action: wallet_approve, target: "connect",                   automatable: true,  blocker: null}
+      - {action: fill,           target: "#code=INVITE",              automatable: false, blocker: "초대 코드 미보유"}
+      - {action: click,          target: "Request tokens",            automatable: true,  blocker: null}
+    automatable: full               # full | partial | manual (레시피 스칼라, 신호용)
     blockers: []                    # partial/manual 사유
     reconned_at: 2026-07-28
     verdict: null                   # v1은 항상 null (dry-run)
 ```
 
-`recipe_hash`는 `entry_url` + 정규화된 `steps`의 sha256이다. 레시피가 바뀌면 해시가 바뀌어 verdict 캐시가 **자동 무효화**된다. 별도 만료 로직이 필요 없다.
+`recipe_hash`는 `entry_url` + 정규화된 `steps`의 sha256이다. 레시피가 바뀌면 해시가 바뀌어 verdict 캐시가 **자동 무효화**된다. 별도 만료 로직이 필요 없다. **`automatable`·`blocker` 스텝 태그는 해시에 넣지 않는다** — 절차가 같은데 판정만 바뀐 것을 레시피 교체로 취급하면 캐시가 무의미해진다.
 
 `signature_kind` 위험도 순서: `none` < `message` < `tx` < `approve`.
 
 `action` enum: `goto`, `click`, `fill`, `wait`, `wallet_connect`, `wallet_approve`, `wallet_sign`.
+
+**스텝 태그** (`automatable`·`blocker`, 2026-08-02 §12.5에서 추가): 스텝 단위 자동화 가능 여부와 그 사유. **기본값은 `false`** — 태그가 없는 구 레시피는 실행 상한 0으로 떨어져 종전과 같이 포인팅 전용이 된다. 하위호환 로딩은 되지만 **구 데이터가 실행 권한을 얻지는 못한다.**
 
 ### 5.3 verdict 캐시 (`cache/verdicts.yaml`)
 
@@ -450,7 +453,9 @@ LLM 호출 이전의 결정적 거부. 순서대로 평가하고 하나라도 �
 3. `capital_required_usd > CAPITAL_CAP_USD` → REJECT
 4. 버너 지갑 잔고 > `BALANCE_CAP_USD` → REJECT (자산 과다 노출 방지)
 5. `chain` ∉ allowlist → REJECT (**v2부터 활성**, v1은 allowlist 파일 부재 시 이 규칙 스킵)
-6. `automatable != "full"` → 실행 대상 아님 (거부가 아니라 포인팅 전용 분류)
+6. **실행 상한** = `auto_prefix_len(recipe)` (§12.5). `0`이면 실행 대상 아님 (거부가 아니라 포인팅 전용 분류). `> 0`이면 통과시키되 상한을 `GuardResult.ceiling`에 실어 보낸다.
+
+> 규칙 6은 2026-08-02까지 `automatable != "full"` → 이진 거부였다. §12.5에서 실행 상한으로 바뀌었다. 레시피 스칼라 `automatable`은 **계속 기록되지만 게이트 판정에는 쓰이지 않는다** — Track A 신호와 council 입력으로만 남는다.
 
 도메인 비교는 **등록 도메인(eTLD+1)** 기준이다. 서브도메인 차이는 허용하고 타이포스쿼팅·유사 TLD는 걸러낸다.
 
@@ -477,7 +482,9 @@ def run_recipe(recipe, *, dry_run: bool = True, page=None) -> dict:
     dry_run=False: 인증된 page 필수, 없으면 ValueError."""
 ```
 
-반환: `{"status": "dry_run" | "executed" | "rejected", ...}`.
+반환: `{"status": "dry_run" | "executed" | "rejected" | "pointing_only" | "handoff" | "aborted", ...}`.
+
+`handoff`는 §12.5에서 추가됐다 — 실행 상한까지 자동 수행한 뒤 사람에게 넘긴 상태다. `dry_run` 응답에도 `ceiling`을 실어, 실행하지 않는 동안에도 prefix 분포가 계속 측정된다.
 
 **지갑 세션** (`execute/session.py`) — autoinsta `publish/session.py` 이식. 전용 프로필 디렉토리에 MetaMask 확장을 두고, 최초 1회 headful로 사람이 버너 지갑 시드 입력·잠금해제. 이후 코드는 개인키를 모른 채 서명할 수 있다. 프로필 디렉토리는 gitignore.
 
@@ -725,3 +732,64 @@ B는 세 갈래 중 유일하게 큰 구현이 따르고(스텝 스키마·프�
 **동결 해제 조건**: `actions.yaml`에 `automatable: full`이 누적 **1건 이상** 나타나거나, 사람 게이트 blocker가 없는 레시피가 유의미하게 쌓이면 §12.3을 다시 연다. 그전까지 `execute/`에 새 기능을 넣지 않는다.
 
 **동결이 삭제가 아닌 이유**: 게이트는 이미 실전에서 값을 했다 — 1차의 환각 레시피 7건을 전부 막았고, 5차·6차에서 규칙 2(무제한 approve)·3(자본 상한)·6(`pointing_only`)이 각각 작동했다. 실행을 안 한다고 해서 이 판정을 버릴 이유는 없다. 판정은 `actions.yaml`의 품질 신호로 계속 쓰인다.
+
+### 12.5 결정 정정 — B갈래 채택: 스텝 단위 자동화 태그 + 실행 상한 (사용자, 2026-08-02)
+
+**§12.4(C+A)를 대체한다.** 근거는 §8.1.1 재측정이다. warm 세션 프롬프트로 `manual`이 8 → 3으로 줄고 `partial`이 7 → 12로 늘었다 — **자동 수행 가능한 구간이 실제로 길어졌다.** 그런데 `full`은 여전히 0이고 그 원인은 자본·지역·투기성·물리 자원이라, `full`을 기다리는 것은 **잘못된 목표**다. 사용자가 원하는 "하루 한 번 명령어로 자동 파밍"에 가장 가까운 경로는 `full` 대기가 아니라 **자동 가능한 구간까지 밀고 가다 사람이 필요한 지점에서 멈추는 것**이다.
+
+**§12.4의 동결 조항(`execute/`에 새 기능 금지)은 이 결정으로 해제된다.**
+
+#### 12.5.1 왜 스텝 태그인가 — §12.2가 실패한 지점
+
+§12.2는 prefix 실행을 "구현 불가"로 판정했다. 그 판정의 근거는 `_drive`가 **지갑 액션에서만** 멈춘다는 것이었고, 그 기준으로 재면 `3DOS`가 prefix 15/15(100%)로 보이지만 스텝 3이 이메일 회원가입 폼, 스텝 6이 인증 메일 열기라 **진짜 prefix는 0~2**였다. 잘못된 안전 신호다.
+
+**근본 원인은 표현력이다** — `automatable`은 레시피 전체에 대한 스칼라이고 `blockers`는 자유 텍스트라, "어디까지 갈 수 있는가"를 기계가 알 방법이 없다. §12.2는 "지금 데이터로는 불가"였지 "원리적으로 불가"가 아니었다. **데이터를 바꾼다.**
+
+#### 12.5.2 스키마
+
+```python
+@dataclass(frozen=True)
+class Step:
+    action: str
+    target: str
+    automatable: bool = False     # 기본값은 보수적으로 False
+    blocker: str | None = None    # automatable=False일 때의 사유
+```
+
+`automatable=False`가 기본값인 이유는 이 레포의 관행(§4.3, `scout.py`) — 모르면 가장 안전한 쪽으로 강제한다. 태그가 없는 구 `actions.yaml` 레시피 16건은 전부 상한 0이 되어 종전과 같이 포인팅 전용에 머문다. **마이그레이션하지 않는다** — 태그 없는 레시피에 실행 권한을 소급 부여하는 것이 정확히 §12.2가 경고한 잘못된 안전 신호다. 로테이션(§5.4)이 재정찰하면서 자연히 태그가 채워진다.
+
+#### 12.5.3 실행 상한 = **선두 연속** prefix
+
+```python
+def auto_prefix_len(recipe: Recipe) -> int:
+    """automatable=True인 스텝이 선두에서 몇 개나 연속되는가."""
+```
+
+**개수가 아니라 prefix여야 한다.** 자동화 가능 스텝의 *총합*을 세면 중간에 사람 스텝이 끼어 있어도 큰 수가 나와 §12.2의 오신호가 그대로 재발한다. 스텝 5개 중 1·2·4·5가 자동이면 상한은 4가 아니라 **2**다 — 3을 건너뛰고 4를 실행하는 것은 절차 위반이다.
+
+#### 12.5.4 게이트와 실행 계약
+
+| | 종전 | §12.5 |
+|---|---|---|
+| 규칙 6 | `automatable != "full"` → 이진 거부 | 상한 `ceiling = auto_prefix_len` |
+| `ceiling == 0` | — | `pointing_only` (종전 거동과 동일) |
+| `ceiling > 0` | 전건 차단 | 통과, `GuardResult.ceiling`으로 상한 전달 |
+| 실행 | 전부 아니면 전무 | `steps[:ceiling]` 수행 후 `handoff` |
+
+- **`handoff`** 응답은 `completed`(수행한 스텝) + `next_step`(멈춘 스텝) + `blocker`(사유)를 싣는다. 사람이 이어받을 지점을 알아야 인계가 성립한다.
+- **지갑 스텝 중단은 유지된다.** 상한 안이더라도 `wallet_*`를 만나면 v1은 `aborted`다(§8, §12.4의 "서명 안 함"). 상한은 게이트를 여는 장치이지 서명 정책을 바꾸는 장치가 아니다. **실효 상한 = min(auto_prefix, 첫 지갑 스텝)**.
+- **council은 그대로 서명 게이트에 남는다** — live 실행 경로에서만 호출되고 fail-closed다(§7).
+
+#### 12.5.5 규칙 1~5는 건드리지 않는다
+
+앵커 부재·무제한 approve·자본 상한·잔고 상한·체인 allowlist는 **전부 그대로**다. 이 변경이 여는 것은 규칙 6 하나뿐이고, 규칙 6은 원래 "위험" 판정이 아니라 "실행 대상 분류"였다. 5차·6차에서 실제로 거부를 만든 규칙 2·3은 영향받지 않는다.
+
+#### 12.5.6 무엇을 측정하게 되는가
+
+배선 직후 실행 상한은 대부분 0일 것이다(구 레시피 16건 + 태그 학습 전). 다음 라이브에서 볼 것:
+
+1. **스텝 태그 커버리지** — 모델이 per-step 판정을 실제로 내는가, 아니면 전건 `false`로 뭉개는가
+2. **prefix 분포** — `ceiling > 0`인 레시피 비율, 그리고 `ceiling / len(steps)`
+3. **§12.2 대조** — 지갑 기준 prefix(28%)와 스텝 태그 기준 prefix의 차이. `3DOS`가 15가 아니라 2~3으로 나오면 표현력 문제가 실제로 해소된 것이다
+
+**desk 추정을 하지 않는다** — §8.1.1에서 정규식으로 blocker를 분류해 "31% 자동화 가능"을 냈다가 모델에게 직접 물으니 0%였다. 이번 수치는 전부 라이브 산출물에서만 읽는다.

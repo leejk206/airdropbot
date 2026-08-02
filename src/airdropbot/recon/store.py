@@ -40,7 +40,16 @@ def _recipe_to_dict(recipe: Recipe) -> dict:
         "signature_kind": recipe.signature_kind,
         "approve_unlimited": recipe.approve_unlimited,
         "capital_required_usd": recipe.capital_required_usd,
-        "steps": [{"action": s.action, "target": s.target} for s in recipe.steps],
+        "steps": [
+            {
+                "action": s.action,
+                "target": s.target,
+                # 스텝 단위 자동화 판정 (spec §12.5). 실행 상한의 유일한 근거다.
+                "automatable": s.automatable,
+                "blocker": s.blocker,
+            }
+            for s in recipe.steps
+        ],
         "automatable": recipe.automatable,
         "blockers": list(recipe.blockers),
         "reconned_at": recipe.reconned_at,
@@ -54,7 +63,14 @@ def _recipe_from_dict(data: dict) -> Recipe:
         project=data["project"],
         entry_url=data["entry_url"],
         steps=tuple(
-            Step(action=s.get("action", ""), target=s.get("target", ""))
+            Step(
+                action=s.get("action", ""),
+                target=s.get("target", ""),
+                # 태그가 없는 구 레시피는 False로 읽힌다 — 실행 권한을 소급 부여하지
+                # 않는다. 읽히기는 하되 실행 상한 0이다. spec §12.5.2.
+                automatable=bool(s.get("automatable")),
+                blocker=s.get("blocker") or None,
+            )
             for s in data.get("steps") or []
         ),
         chain=data.get("chain"),

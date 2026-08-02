@@ -15,10 +15,15 @@ _FACTS = [
 
 
 def _recipe(**kw) -> Recipe:
+    """기본 픽스처는 **스텝 태그가 붙은** 실행 가능 레시피다.
+
+    2026-08-02(spec §12.5)부터 규칙 6은 레시피 스칼라 ``automatable``이 아니라
+    스텝 태그의 선두 prefix를 본다. 태그가 없으면 상한 0 = 포인팅 전용이다.
+    """
     base = dict(
         project="Citrea",
         entry_url="https://app.citrea.xyz/faucet",
-        steps=(Step("goto", "https://app.citrea.xyz/faucet"),),
+        steps=(Step("goto", "https://app.citrea.xyz/faucet", automatable=True),),
         automatable="full",
     )
     base.update(kw)
@@ -83,14 +88,56 @@ def test_skips_chain_rule_when_allowlist_absent():
     assert prefilter(_recipe(chain="anything"), _FACTS, Limits()).allowed is True
 
 
-def test_marks_partial_recipe_as_pointing_only():
-    result = prefilter(_recipe(automatable="partial"), _FACTS, Limits())
+# --- 규칙 6: 이진 거부 → 실행 상한 (spec §12.5.4) ----------------------------
+
+
+def test_marks_fully_blocked_recipe_as_pointing_only():
+    """선두 스텝부터 막혀 있으면 자동으로 갈 수 있는 곳이 없다 — 종전 거동 유지."""
+    recipe = _recipe(steps=(Step("fill", "signup", blocker="이메일 가입"),))
+    result = prefilter(recipe, _FACTS, Limits())
     assert result.allowed is False
     assert result.pointing_only is True
+    assert result.ceiling == 0
 
 
-def test_marks_manual_recipe_as_pointing_only():
-    assert prefilter(_recipe(automatable="manual"), _FACTS, Limits()).pointing_only is True
+def test_untagged_legacy_recipe_is_pointing_only_even_if_rated_full():
+    """구 레시피는 스칼라가 full이어도 실행 권한이 없다 — spec §12.5.2."""
+    recipe = _recipe(steps=(Step("goto", "https://app.citrea.xyz/f"),), automatable="full")
+    assert prefilter(recipe, _FACTS, Limits()).pointing_only is True
+
+
+def test_partial_recipe_with_automatable_prefix_is_allowed_with_ceiling():
+    """B갈래의 핵심 — `full`이 아니어도 자동 가능한 구간까지는 실행한다."""
+    recipe = _recipe(
+        automatable="partial",
+        steps=(
+            Step("goto", "https://app.citrea.xyz/f", automatable=True),
+            Step("click", "Start", automatable=True),
+            Step("fill", "email", blocker="이메일 인증"),
+            Step("click", "Claim", automatable=True),
+        ),
+    )
+    result = prefilter(recipe, _FACTS, Limits())
+    assert result.allowed is True
+    assert result.ceiling == 2
+
+
+def test_manual_scalar_does_not_block_when_prefix_exists():
+    """레시피 스칼라는 신호로만 남는다 — 게이트 판정에서 빠졌다."""
+    recipe = _recipe(
+        automatable="manual",
+        steps=(Step("goto", "https://app.citrea.xyz/f", automatable=True),),
+    )
+    assert prefilter(recipe, _FACTS, Limits()).allowed is True
+
+
+def test_ceiling_rule_runs_after_safety_rules():
+    """상한이 열렸다고 안전 규칙(1~5)이 우회되면 안 된다 — spec §12.5.5."""
+    recipe = _recipe(signature_kind="approve", approve_unlimited=True)
+    result = prefilter(recipe, _FACTS, Limits())
+    assert result.allowed is False
+    assert "approve" in result.reason
+    assert result.pointing_only is False
 
 
 def test_domain_rule_is_evaluated_before_approve_rule():
