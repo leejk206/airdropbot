@@ -131,6 +131,35 @@ def test_manual_scalar_does_not_block_when_prefix_exists():
     assert prefilter(recipe, _FACTS, Limits()).allowed is True
 
 
+def test_safety_rejection_still_reports_real_ceiling():
+    """거부 건도 **실제** prefix를 실어야 한다 — spec §12.5.6.
+
+    7차 라이브(2026-08-02)에서 드러난 결함. 규칙 1~5가 early return하면서 ceiling이
+    0으로 기록돼, prefix 분포 표본이 자동화 불가능한 쪽으로 편향됐다 (Polymarket
+    실제 4 → 0으로 보고). 상한은 안전 판정과 독립적인 **측정값**이다.
+    """
+    recipe = _recipe(
+        signature_kind="approve",
+        approve_unlimited=True,
+        steps=(
+            Step("goto", "https://app.citrea.xyz/f", automatable=True),
+            Step("click", "Start", automatable=True),
+            Step("fill", "email", blocker="이메일 인증"),
+        ),
+    )
+    result = prefilter(recipe, _FACTS, Limits())
+    assert result.allowed is False
+    assert result.ceiling == 2
+
+
+def test_domain_rejection_reports_real_ceiling():
+    recipe = _recipe(
+        entry_url="https://evil.io",
+        steps=(Step("goto", "https://evil.io", automatable=True),),
+    )
+    assert prefilter(recipe, _FACTS, Limits()).ceiling == 1
+
+
 def test_ceiling_rule_runs_after_safety_rules():
     """상한이 열렸다고 안전 규칙(1~5)이 우회되면 안 된다 — spec §12.5.5."""
     recipe = _recipe(signature_kind="approve", approve_unlimited=True)

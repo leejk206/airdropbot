@@ -38,7 +38,13 @@ def prefilter(
     *,
     wallet_balance_usd: float = 0.0,
 ) -> GuardResult:
-    """spec §6 규칙을 순서대로 평가. 하나라도 걸리면 즉시 거부."""
+    """spec §6 규칙을 순서대로 평가. 하나라도 걸리면 즉시 거부.
+
+    ``ceiling``은 **모든** 반환 경로에 실린다. 안전 판정과 독립적인 측정값이라,
+    거부 건에서 0으로 눕히면 prefix 분포 표본이 자동화 불가능한 쪽으로 편향된다
+    (7차 라이브에서 실제로 그랬다 — Polymarket 실제 4가 0으로 기록). spec §12.5.6.
+    """
+    ceiling = auto_prefix_len(recipe)
     entry_domain = registrable_domain(recipe.entry_url)
     wanted = project_key(recipe.project)
     official_domains = {
@@ -51,31 +57,39 @@ def prefilter(
         if d
     }
     if not official_domains:
-        return GuardResult(False, f"{recipe.project}: KB에 합의된 official_url 없음")
+        return GuardResult(
+            False, f"{recipe.project}: KB에 합의된 official_url 없음", ceiling=ceiling
+        )
     if entry_domain not in official_domains:
-        return GuardResult(False, f"entry_url 도메인({entry_domain})이 KB official_url과 불일치")
+        return GuardResult(
+            False,
+            f"entry_url 도메인({entry_domain})이 KB official_url과 불일치",
+            ceiling=ceiling,
+        )
 
     if recipe.signature_kind == "approve" and recipe.approve_unlimited:
-        return GuardResult(False, "무제한 approve 서명 요구")
+        return GuardResult(False, "무제한 approve 서명 요구", ceiling=ceiling)
 
     if recipe.capital_required_usd > limits.capital_cap_usd:
         return GuardResult(
             False,
             f"요구 자본 ${recipe.capital_required_usd} > 상한 ${limits.capital_cap_usd}",
+            ceiling=ceiling,
         )
 
     if wallet_balance_usd > limits.balance_cap_usd:
         return GuardResult(
-            False, f"지갑 잔고 ${wallet_balance_usd} > 상한 ${limits.balance_cap_usd}"
+            False,
+            f"지갑 잔고 ${wallet_balance_usd} > 상한 ${limits.balance_cap_usd}",
+            ceiling=ceiling,
         )
 
     if limits.chain_allowlist is not None and recipe.chain not in limits.chain_allowlist:
-        return GuardResult(False, f"체인({recipe.chain})이 allowlist 밖")
+        return GuardResult(False, f"체인({recipe.chain})이 allowlist 밖", ceiling=ceiling)
 
     # 규칙 6 — 이진 거부가 아니라 **실행 상한**이다 (spec §12.5.4). 레시피 스칼라
     # ``automatable``은 계속 기록되지만 여기서는 보지 않는다. `full`을 기다리는 것이
     # 잘못된 목표였고(§12.5), 어디까지 갈 수 있는지는 스텝 태그만이 안다.
-    ceiling = auto_prefix_len(recipe)
     if ceiling == 0:
         first_blocker = next((s.blocker for s in recipe.steps if s.blocker), None)
         reason = "자동 수행 가능한 선두 스텝 없음 — 포인팅만"

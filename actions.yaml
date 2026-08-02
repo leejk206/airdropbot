@@ -1,70 +1,97 @@
 recipes:
 - project: Polymarket
-  recipe_hash: sha256:4fd59529212907b503bd4f1b0c6f8b40a05524d2a8cc982e4d438c531d4688a8
+  recipe_hash: sha256:dabebb7da062083c357ecaa56fabeb2071cd027e63828f2e8c9a90dc1cc0f488
   entry_url: https://polymarket.com/
   chain: Polygon
   signature_kind: approve
   approve_unlimited: true
-  capital_required_usd: 50.0
+  capital_required_usd: 20.0
   steps:
   - action: goto
     target: https://polymarket.com/
+    automatable: true
+    blocker: null
   - action: click
-    target: Sign up / Log in button (top right)
+    target: '''Sign up'' / ''Log in'' button in header'
+    automatable: true
+    blocker: null
   - action: wallet_connect
-    target: Connect wallet (MetaMask/WalletConnect) or email login creating a Polygon
-      proxy wallet
+    target: Connect wallet (MetaMask/embedded email wallet) in the Polymarket connect
+      modal
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: Sign login authentication message to link wallet to Polymarket account
+    target: Sign the Polymarket authentication / Terms-of-Service message to create
+      the proxy wallet
+    automatable: true
+    blocker: null
   - action: wait
-    target: Account/profile creation and onboarding modal to finish loading
-  - action: fill
-    target: Profile username field (onboarding)
+    target: Cloudflare / bot-challenge or region check during signup
+    automatable: false
+    blocker: CAPTCHA / bot-challenge and geo-restriction check
   - action: click
-    target: Deposit button
-  - action: click
-    target: Select deposit method (USDC on Polygon / bridge / card)
+    target: '''Deposit'' button in the account menu'
+    automatable: true
+    blocker: null
   - action: fill
-    target: Deposit amount field (e.g. 50 USDC)
+    target: Deposit amount field (USDC on Polygon, e.g. 20)
+    automatable: true
+    blocker: null
   - action: wallet_approve
-    target: Approve USDC spend for deposit/bridge contract
-  - action: wait
-    target: Deposit confirmation and balance to appear in account
-  - action: click
-    target: A market card on the homepage (e.g. 'Fed Decision in September?')
-  - action: click
-    target: Yes or No outcome button
-  - action: fill
-    target: Order amount/shares input field
-  - action: wallet_approve
-    target: USDC ERC-20 allowance and CTF setApprovalForAll for the Polymarket exchange
-      contract (first trade only)
+    target: Approve USDC spend for Polymarket CTF Exchange / proxy contract (unlimited
+      allowance prompt)
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: Sign the EIP-712 CLOB order payload
-  - action: click
-    target: Buy / Place order confirmation button
+    target: Sign the USDC deposit/bridge transaction to fund the Polymarket proxy
+      wallet
+    automatable: true
+    blocker: null
   - action: wait
-    target: Order fill confirmation and position to appear in Portfolio
+    target: Deposit confirmation on Polygon and balance credited
+    automatable: true
+    blocker: null
   - action: click
-    target: Portfolio / Activity tab to verify recorded trade history
+    target: Open a market from the homepage (e.g. 'Fed Decision in September?')
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Order amount field for Yes/No outcome share
+    automatable: true
+    blocker: null
   - action: click
-    target: Rewards link in footer to check any active reward or leaderboard program
-  automatable: manual
+    target: '''Buy'' / place order button'
+    automatable: true
+    blocker: null
+  - action: wallet_sign
+    target: Sign the EIP-712 CLOB order payload for the trade
+    automatable: true
+    blocker: null
+  - action: wait
+    target: Order fill confirmation and Exp credited to the account
+    automatable: true
+    blocker: null
+  - action: goto
+    target: https://polymarket.com/rewards
+    automatable: true
+    blocker: null
+  - action: click
+    target: Check Exp balance / rewards tier and repeat trading to accrue Exp over
+      time
+    automatable: true
+    blocker: null
+  automatable: partial
   blockers:
-  - No official airdrop/points program is announced on the page — token reward is
-    speculative, criteria unknown
-  - Account signup requires email/social login (Log in / Sign up) with possible email
-    or OTP verification
-  - 'Geo-restrictions: US users are routed to the CFTC-regulated Polymarket US entity;
-    many jurisdictions are blocked and may require KYC'
-  - Requires real USDC capital deposited on Polygon to place trades; funds are at
-    risk of loss
-  - On first trade the proxy wallet must sign ERC-20 USDC approvals and CTF setApprovalForAll
-    (typically unlimited allowance)
-  - Cloudflare/bot protection and dynamic market UI make headless automation unreliable
-  - Meaningful 'experience' likely needs sustained volume over weeks, not a one-off
-    action
-  reconned_at: '2026-08-01T10:15:00Z'
+  - 'Geo-block: US and several other jurisdictions are restricted on the international
+    platform; VPN/geo check may fail'
+  - Deposit of real USDC capital is required — trading volume/PnL drives Exp accrual
+    and cannot be earned with zero funds
+  - Onboarding may trigger Cloudflare/bot challenge on account creation or first deposit
+  - Polymarket US (QCX) route requires KYC identity document upload if the international
+    platform is unavailable
+  - No published airdrop claim page — Exp accrual only; distribution mechanics/eligibility
+    unconfirmed
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: 3DOS
   recipe_hash: sha256:24b332d8948748fbee5484e40175abed9ac2a4579083379038fb87e99319f278
@@ -76,34 +103,64 @@ recipes:
   steps:
   - action: goto
     target: https://3dos.io/
+    automatable: false
+    blocker: null
   - action: click
     target: Login / Enter Now button in the top navigation
+    automatable: false
+    blocker: null
   - action: goto
     target: https://dashboard.3dos.io/register?ref=<REFERRAL_CODE>
+    automatable: false
+    blocker: null
   - action: fill
     target: 'Registration form: full name, email address, password, confirm password'
+    automatable: false
+    blocker: null
   - action: click
     target: Terms & Conditions checkbox
+    automatable: false
+    blocker: null
   - action: click
     target: Sign Up / Create Account button
+    automatable: false
+    blocker: null
   - action: wait
     target: Verification email delivery, then open the confirmation link in the inbox
+    automatable: false
+    blocker: null
   - action: goto
     target: https://dashboard.3dos.io/login
+    automatable: false
+    blocker: null
   - action: fill
     target: 'Login form: email and password'
+    automatable: false
+    blocker: null
   - action: click
     target: Login button
+    automatable: false
+    blocker: null
   - action: click
     target: 'Dashboard sidebar: Free Points / Daily Points page'
+    automatable: false
+    blocker: null
   - action: click
     target: Generate Point (daily claim) button
+    automatable: false
+    blocker: null
   - action: wait
     target: Confirmation toast that daily points were credited
+    automatable: false
+    blocker: null
   - action: click
     target: 'Referral page: Copy referral link, then share it to accrue referral points'
+    automatable: false
+    blocker: null
   - action: wait
     target: 24 hours, then repeat the Generate Point daily claim
+    automatable: false
+    blocker: null
   automatable: partial
   blockers:
   - Account creation requires email + password and email verification link (external
@@ -129,24 +186,44 @@ recipes:
   steps:
   - action: goto
     target: https://aiw3.ai/
+    automatable: false
+    blocker: null
   - action: click
     target: Claim Airdrop button (hero section)
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Solana wallet connect modal (e.g. Phantom/OKX Wallet)
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Sign-in authentication message for aiw3.ai session
+    automatable: false
+    blocker: null
   - action: wait
     target: Airdrop dashboard / eligibility and points balance to load
+    automatable: false
+    blocker: null
   - action: click
     target: Airdrop tab in top navigation
+    automatable: false
+    blocker: null
   - action: wait
     target: Eligibility check result (points threshold vs. accumulated points)
+    automatable: false
+    blocker: null
   - action: click
     target: Claim Airdrop Now button
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: Claim transaction approval in wallet
+    automatable: false
+    blocker: null
   - action: wait
     target: Claim confirmation / transaction success state
+    automatable: false
+    blocker: null
   automatable: partial
   blockers:
   - Claim requires a connected wallet and an on-chain/off-chain signature that cannot
@@ -172,17 +249,27 @@ recipes:
   steps:
   - action: goto
     target: https://alignedlayer.com/
+    automatable: false
+    blocker: null
   - action: wait
     target: page load; scan for airdrop/quest/claim/points navigation entry
+    automatable: false
+    blocker: null
   - action: click
     target: Developers > Documentation (https://docs.alignedlayer.com) to look for
       an official airdrop/task announcement
+    automatable: false
+    blocker: null
   - action: goto
     target: Company > Blog — check for an official ALIGN airdrop/task campaign post
       and its entry URL
+    automatable: false
+    blocker: null
   - action: goto
     target: X (Twitter) footer link — verify the official campaign URL before any
       wallet interaction
+    automatable: false
+    blocker: null
   automatable: manual
   blockers:
   - The page at https://alignedlayer.com/ is a B2B infrastructure marketing site (Wallet/Rollup
@@ -210,28 +297,52 @@ recipes:
   steps:
   - action: goto
     target: https://www.allox.ai/
+    automatable: false
+    blocker: null
   - action: click
     target: Launch App 버튼 (헤더 또는 히어로 섹션)
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: dApp의 Connect Wallet 모달 — BNB Chain 네트워크 선택
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: 로그인/인증용 메시지 서명 요청
+    automatable: false
+    blocker: null
   - action: wait
     target: 대시보드 로딩 및 계정 등록 완료
+    automatable: false
+    blocker: null
   - action: click
     target: Daily Bonus (일일 체크인) 버튼
+    automatable: false
+    blocker: null
   - action: click
     target: Social Tasks 목록의 각 태스크 (X 팔로우/리트윗, Telegram 참여 등)
+    automatable: false
+    blocker: null
   - action: click
     target: 각 소셜 태스크의 Verify / Claim 버튼
+    automatable: false
+    blocker: null
   - action: click
     target: Narrative 선택 → 리스크 티어(High/Mid/Low Cap) 및 금액 선택
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: 할당 금액에 대한 토큰 approve (정확한 금액 한도로 설정)
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: 바스켓 할당 실행 트랜잭션 서명
+    automatable: false
+    blocker: null
   - action: wait
     target: 트랜잭션 확정 및 포인트 반영 확인
+    automatable: false
+    blocker: null
   automatable: manual
   blockers:
   - Launch App 대상 dApp URL이 랜딩 페이지에 명시되어 있지 않아 실제 앱 도메인 확인 필요
@@ -253,72 +364,138 @@ recipes:
   steps:
   - action: goto
     target: https://aiw3.ai/airdrop
+    automatable: false
+    blocker: null
   - action: click
     target: Connect Wallet button (top-right)
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: wallet extension connect prompt
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: login/authentication message signature
+    automatable: false
+    blocker: null
   - action: click
     target: Check Eligibility button
+    automatable: false
+    blocker: null
   - action: wait
     target: eligibility result panel to load
+    automatable: false
+    blocker: null
   - action: click
     target: Check in (Daily check-in rewards, +3 Points)
+    automatable: false
+    blocker: null
   - action: click
     target: Follow button — Newbie Task 'Follow AIW3 on X'
+    automatable: false
+    blocker: null
   - action: wait
     target: X follow completed in new tab
+    automatable: false
+    blocker: null
   - action: click
     target: Verify button — 'Follow AIW3 on X' (+10 pts)
+    automatable: false
+    blocker: null
   - action: click
     target: Repost button — 'Repost official X campaign'
+    automatable: false
+    blocker: null
   - action: wait
     target: X repost completed in new tab
+    automatable: false
+    blocker: null
   - action: click
     target: Verify button — 'Repost official X campaign' (+20 pts)
+    automatable: false
+    blocker: null
   - action: click
     target: Join button — 'Join AIW3 Telegram'
+    automatable: false
+    blocker: null
   - action: wait
     target: Telegram group join completed
+    automatable: false
+    blocker: null
   - action: click
     target: Verify button — 'Join AIW3 Telegram' (+10 pts)
+    automatable: false
+    blocker: null
   - action: click
     target: Join Now — 500,000 $AIW3 0G Ecosystem Airdrop Campaign banner
+    automatable: false
+    blocker: null
   - action: click
     target: Predict button — 'Complete 1 prediction daily' task
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: USDT/token spending approval for prediction market contract
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: prediction market entry transaction
+    automatable: false
+    blocker: null
   - action: click
     target: Predict button — repeat until 3 predictions today (+50 pts)
+    automatable: false
+    blocker: null
   - action: click
     target: Create button — 'Publish strategy to plaza'
+    automatable: false
+    blocker: null
   - action: fill
     target: strategy creation form fields (name, parameters)
+    automatable: false
+    blocker: null
   - action: click
     target: Publish to Strategy Plaza
+    automatable: false
+    blocker: null
   - action: click
     target: Trade button — 'Trading volume reward' task
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: USDT spending approval for trading contract
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: trade execution transaction (repeat to reach ≥2000 USDT daily volume for
       3 consecutive days)
+    automatable: false
+    blocker: null
   - action: click
     target: Invite tab / Referral — copy referral link for 'Invite 1 friend to predict
       daily'
+    automatable: false
+    blocker: null
   - action: wait
     target: TGE on Aug 3 countdown to finish
+    automatable: false
+    blocker: null
   - action: goto
     target: https://aiw3.ai/airdrop
+    automatable: false
+    blocker: null
   - action: click
     target: Claim Airdrop button
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: claim transaction confirmation in wallet
+    automatable: false
+    blocker: null
   - action: click
     target: OKX Boost entry (post-TGE, optional additional allocation)
+    automatable: false
+    blocker: null
   automatable: partial
   blockers:
   - Initial airdrop snapshot already taken on Jul 28 — late wallets may be ineligible
@@ -338,7 +515,7 @@ recipes:
   reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
 - project: AIW3
-  recipe_hash: sha256:e8fda3dbd0dafe5b2cdc5e4bb5239d790fb183e9cbd1c23e8a13af679134a767
+  recipe_hash: sha256:ceb382e03f14ffef3f0be15309b5e65561ada438855eb2111093cbe456bf5f1b
   entry_url: https://aiw3.ai/?userInviteCode=REF2DL8L
   chain: BSC
   signature_kind: message
@@ -347,149 +524,226 @@ recipes:
   steps:
   - action: goto
     target: https://aiw3.ai/?userInviteCode=REF2DL8L
+    automatable: true
+    blocker: null
   - action: click
-    target: Claim Airdrop button (hero section)
-  - action: wait
-    target: Connect wallet modal to render
+    target: '"Claim Airdrop" button in hero section'
+    automatable: true
+    blocker: null
   - action: click
-    target: Network selector → BSC
-  - action: click
-    target: Wallet option (OKX Wallet / MetaMask / Binance Wallet / Gate Wallet /
-      Bitget Wallet)
-  - action: wallet_connect
-    target: Injected wallet provider on BSC
+    target: '"Connect" panel — select Network: BSC'
+    automatable: true
+    blocker: null
   - action: fill
-    target: Invitation code (Optional) input → REF2DL8L
+    target: '"Invitation code(Optional)" field → REF2DL8L'
+    automatable: true
+    blocker: null
   - action: click
-    target: Connect / Confirm button in modal
+    target: wallet option (MetaMask / OKX Wallet / Binance Wallet)
+    automatable: true
+    blocker: null
+  - action: wallet_connect
+    target: MetaMask extension — approve site connection for BSC account
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: Login / verification message signature request from wallet
+    target: SIWE-style login message to authenticate the AIW3 account
+    automatable: false
+    blocker: human must confirm the signature prompt in the wallet extension
+  - action: goto
+    target: AIW3 Airdrop dashboard ("Airdrop" nav item / "Claim Airdrop Now")
+    automatable: true
+    blocker: null
+  - action: click
+    target: social tasks (follow X, join Telegram/Discord) in the task list
+    automatable: true
+    blocker: null
+  - action: click
+    target: '"Verify" / "Claim" button next to each completed social task'
+    automatable: false
+    blocker: task verification may present a CAPTCHA / bot challenge
+  - action: click
+    target: '"Create API Key" in the How-to-Use-Skills section'
+    automatable: true
+    blocker: null
+  - action: fill
+    target: exchange API key/secret to enable trading and strategy point tasks
+    automatable: false
+    blocker: human must supply exchange API credentials
   - action: wait
-    target: Airdrop dashboard to load with points and task list
+    target: points accrual / snapshot to finalize before TGE on Aug 3 (countdown ~12d)
+    automatable: true
+    blocker: null
   - action: click
-    target: Airdrop tab in top navigation
-  - action: click
-    target: Individual task entries (invite friends, follow strategy guides, Academy
-      courses, create strategy) to complete and earn points
-  - action: wait
-    target: Points to accumulate to the redemption threshold and TGE on Aug 3
-  - action: click
-    target: Claim / Redeem airdrop button once eligible
-  - action: wallet_approve
-    target: Claim transaction confirmation in wallet (if an on-chain claim is required
-      at TGE)
+    target: final "Claim Airdrop" button once eligibility threshold is reached
+    automatable: false
+    blocker: on-chain claim transaction must be confirmed by a human in the wallet
   automatable: partial
   blockers:
-  - Whitelist/snapshot phase — airdrop eligibility is snapshot-based and may already
-    be closed to new participants
-  - Point-earning tasks (invites, trading rebates, Academy courses, strategy creation)
-    are multi-day and mostly off-page; points threshold required before any claim
-  - Trading-based tasks require exchange/CEX API keys and real capital, which cannot
-    be automated safely
-  - Wallet connect requires an injected wallet extension (OKX/MetaMask/Binance/Gate/Bitget)
-    with human approval popups
-  - TGE countdown gates actual token claim; claim contract call may become available
-    only at TGE
-  - Cannot verify from page text whether claim is a signed message (login) or an on-chain
-    claim tx
-  reconned_at: '2026-08-01T10:15:00Z'
+  - wallet signature popup must be confirmed in the extension
+  - high-value point tasks (trading rebates, strategy deployment) need exchange API
+    keys created and pasted by a human
+  - SKILL.md install / AI-assistant setup happens outside the browser
+  - snapshot/whitelist eligibility and TGE claim window (Aug 3) may close before automation
+    completes tasks
+  - possible bot-challenge on social task verification
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: Abstract
-  recipe_hash: sha256:e23a54db463fc0ac19e0566dc742ba65ed92176ae4241ec5a3f1ba99a193c15e
+  recipe_hash: sha256:bdcf799bdbf796c13c4e8ebc4990d2db6ca05c9c9b02a9489e6bf32ea409de78
   entry_url: https://abs.xyz/
-  chain: Abstract (zkSync-based Ethereum L2)
+  chain: Abstract (zkSync Elastic Chain L2, Ethereum L2)
   signature_kind: approve
   approve_unlimited: false
   capital_required_usd: 25.0
   steps:
   - action: goto
     target: https://abs.xyz/
+    automatable: true
+    blocker: null
   - action: click
-    target: Enter Portal 버튼
-  - action: wait
-    target: 포털(portal.abs.xyz) 로드 완료
+    target: '''Enter Portal'' button in header (routes to https://portal.abs.xyz/)'
+    automatable: true
+    blocker: null
   - action: wallet_connect
-    target: Abstract Global Wallet 로그인/가입 (이메일 또는 소셜 + passkey 생성)
+    target: Sign in / Create Abstract Global Wallet (AGW) — passkey prompt via WebAuthn
+    automatable: false
+    blocker: Passkey/biometric device authenticator prompt
+  - action: wait
+    target: Portal account provisioning and profile creation to finish
+    automatable: true
+    blocker: null
+  - action: click
+    target: Link X/Twitter and Discord accounts in Portal profile settings
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Add Network to Wallet'' on abs.xyz to register the Abstract RPC chain'
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Bridge Funds'' link (https://portal.abs.xyz/bridge or official bridge
+      UI)'
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Bridge amount field — ETH to deposit from Ethereum mainnet to Abstract
+    automatable: true
+    blocker: null
+  - action: wallet_approve
+    target: Approve/confirm the L1 bridge deposit transaction in the wallet
+    automatable: false
+    blocker: Human must authorize spending real ETH
+  - action: wait
+    target: Bridge finalization until funds appear in the Abstract balance
+    automatable: true
+    blocker: null
+  - action: click
+    target: Portal 'Discover' tab — open ecosystem apps that grant XP (games, DEXs,
+      marketplaces)
+    automatable: true
+    blocker: null
+  - action: click
+    target: Open a spotlight app (e.g. Moonsheep, Gigling) and complete an in-app
+      action
+    automatable: false
+    blocker: Third-party app gameplay / anti-bot checks require a human
   - action: wallet_sign
-    target: AGW 세션/로그인 인증 서명
-  - action: click
-    target: Bridge Funds (abs.xyz 상단 네비 또는 포털 내 Bridge)
+    target: Sign the app's session/login message with AGW
+    automatable: true
+    blocker: null
   - action: wallet_approve
-    target: L1→Abstract 브릿지 입금 트랜잭션 승인 (가스용 ETH)
-  - action: wait
-    target: 브릿지 자금 Abstract 네트워크 도착
+    target: Confirm the onchain transaction inside the ecosystem app (swap, mint,
+      or game action) that accrues XP
+    automatable: false
+    blocker: Human must authorize spending funds onchain
   - action: click
-    target: '포털 Discover 탭에서 스포트라이트 앱 (예: Moonsheep, Gigling) Visit'
-  - action: wallet_approve
-    target: 앱 내 상호작용 트랜잭션 승인 (거래/게임 플레이 등 XP 적립 활동)
+    target: Portal badges/quests panel — claim completed badges
+    automatable: true
+    blocker: null
   - action: click
-    target: 포털 프로필 → 소셜 계정(X/Discord) 연동
+    target: Follow Abstract on X and join Discord from the footer social links
+    automatable: true
+    blocker: null
   - action: wait
-    target: XP 반영 확인 후 매일 반복 상호작용
+    target: Daily/weekly XP cycle — repeat Portal streaming, voting, and app interactions
+      to accumulate XP
+    automatable: false
+    blocker: Ongoing human-paced engagement (watching streams, voting) over weeks
   automatable: partial
   blockers:
-  - Abstract Global Wallet 가입은 이메일/소셜(passkey) 기반 로그인으로, 브라우저 자동화로 통과하기 어려운 OAuth/passkey
-    단계 포함
-  - 포털 XP는 앱 사용·스트리밍 시청·소셜 연동 등 사람 판단이 필요한 상호작용에 따라 지급되며 명시적 규칙이 비공개
-  - Discord/X 계정 연동 및 인간 검증(캡차) 가능성
-  - XP 획득에 실제 온체인 거래가 필요해 브릿지된 ETH 가스비 필요 (금액은 활동량에 따라 변동)
-  - 에어드랍 여부·기준이 공식 확정 공지된 바 없음 (KNOWN은 커뮤니티 추정)
-  reconned_at: '2026-08-01T10:15:00Z'
+  - Abstract Global Wallet signup uses a passkey/WebAuthn (biometric or device authenticator)
+    flow that a headless browser profile cannot satisfy unless a passkey was pre-provisioned
+  - Bridging funds from Ethereum L1 to Abstract requires real capital and an L1 tx
+    signature
+  - Portal streaming/badge quests are gated behind third-party app interactions with
+    their own anti-bot checks
+  - Some Portal reward tiers historically require an invite/referral code or waitlist
+    approval
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: GRVT
-  recipe_hash: sha256:edc2a8697cc7fbe27d6a372c6e6441c862e2e985eac70f0fa4f264ac6b376f5f
+  recipe_hash: sha256:d1bb6891dddd0137e516d60354d6f4326a3a152f7c0da92afbbf2b2fbd5b952e
   entry_url: https://grvt.io/
-  chain: GRVT zkSync Hyperchain (ZK Stack, Ethereum L2)
+  chain: GRVT Exchange (zkSync ZK Stack validium, settles to Ethereum)
   signature_kind: approve
   approve_unlimited: false
   capital_required_usd: 0.0
   steps:
   - action: goto
     target: https://grvt.io/
+    automatable: true
+    blocker: null
   - action: click
-    target: '''Sign up'' / ''Log in'' button in the top navigation'
-  - action: fill
-    target: email / account credentials (or choose social login) in the auth modal
+    target: '''Log in'' button in top nav (session already authenticated in the persistent
+      profile)'
+    automatable: true
+    blocker: null
   - action: wait
-    target: email verification code delivery and account creation to complete
-  - action: wallet_connect
-    target: connect EVM wallet (MetaMask/WalletConnect) when prompted to link an address
-      to the GRVT account
-  - action: wallet_sign
-    target: sign the GRVT account registration / session-key authentication message
+    target: Account dashboard / trading app to load (app.grvt.io)
+    automatable: true
+    blocker: null
   - action: goto
-    target: the GRVT rewards or airdrop claim page reachable from the logged-in dashboard
-      (e.g. the 'More' nav menu or a rewards/points section) — exact URL must be confirmed
-      after login
+    target: Rewards/Airdrop claim page linked from 'More' menu or Announcements (e.g.
+      grvt.io rewards or claim route)
+    automatable: true
+    blocker: null
   - action: wait
-    target: eligibility and allocation check to load
-  - action: click
-    target: '''Claim'' button for the token allocation'
-  - action: wallet_approve
-    target: token/contract approval for the claim or bridge contract, if requested
-      (approve exact claim amount, not unlimited)
+    target: Claim eligibility check to resolve; verify allocation is shown and region
+      is not blocked
+    automatable: false
+    blocker: Geo-restriction / region eligibility check a logged-in session cannot
+      bypass
+  - action: wallet_connect
+    target: Connect wallet button on the claim page (unlocked extension in profile)
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: confirm the on-chain claim transaction in the wallet
+    target: Sign ownership/authentication message linking the wallet to the GRVT account
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Claim'' button for the GRVT airdrop allocation'
+    automatable: true
+    blocker: null
+  - action: wallet_approve
+    target: Confirm the claim transaction in the wallet extension (gas only, no token
+      approval spend)
+    automatable: true
+    blocker: null
   - action: wait
-    target: transaction confirmation and claimed balance to appear
-  automatable: manual
+    target: Transaction confirmation and claimed balance to appear in the GRVT account
+    automatable: true
+    blocker: null
+  automatable: partial
   blockers:
-  - The landing page at https://grvt.io/ contains no airdrop, claim, points, or rewards
-    UI in the captured text — only marketing, Trade/Invest/Competitions nav, and Sign
-    up / Log in. The claim entry point could not be verified from this page.
-  - Access is gated behind account creation (Sign up / Log in), typically requiring
-    email or social login plus wallet linkage; GRVT historically also gated access
-    via invite/referral code.
-  - GRVT is a KYC/compliance-gated exchange — identity verification and jurisdiction
-    restrictions likely block automated completion.
-  - Claim eligibility is snapshot-based on prior trading/points activity; a fresh
-    account cannot generate eligibility now.
-  - Deposit/withdrawal and claim flows require an on-chain transaction and likely
-    an ERC-20 token approval to the GRVT bridge/claim contract, plus a session-key
-    or account-registration message signature.
-  - Amount, token contract, claim deadline, and exact claim URL are unconfirmed from
-    the provided page content.
-  reconned_at: '2026-08-01T10:15:00Z'
+  - Geographic restriction — GRVT blocks restricted jurisdictions (US and others)
+    at signup/claim; VPN/region gating cannot be solved by a logged-in session
+  - Possible KYC/identity verification gate before claim or withdrawal
+  - Bot/CAPTCHA challenge may appear on the claim or account flow
+  - Claim entry point is not exposed on the marketing homepage — the exact rewards/airdrop
+    URL must be located from Announcements and may change
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: GRVT
   recipe_hash: sha256:abc6be3a211f0c2bfe5383c11781ee6adb74204484594560d78b68cbb10cc26d
@@ -501,28 +755,52 @@ recipes:
   steps:
   - action: goto
     target: https://grvt.io/exchange/sign-up?ref=WRNRM40
+    automatable: false
+    blocker: null
   - action: wait
     target: Sign up form to load ('SIGN UP TO GRVT')
+    automatable: false
+    blocker: null
   - action: click
     target: '''MetaMask'' button under ''or continue with wallets'''
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: MetaMask wallet connection prompt
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Sign-in message to create/authenticate self-custody trading account
+    automatable: false
+    blocker: null
   - action: wait
     target: Account creation to complete and redirect to exchange dashboard
+    automatable: false
+    blocker: null
   - action: fill
     target: Email address field (if prompted for account recovery/notifications)
+    automatable: false
+    blocker: null
   - action: click
     target: '''Continue'' button to submit'
+    automatable: false
+    blocker: null
   - action: wait
     target: Email verification code prompt
+    automatable: false
+    blocker: null
   - action: fill
     target: Email verification code (OTP) input
+    automatable: false
+    blocker: null
   - action: click
     target: '''Confirm'' / ''Continue'' button to verify'
+    automatable: false
+    blocker: null
   - action: wait
     target: Referral code WRNRM40 confirmed as applied in account settings
+    automatable: false
+    blocker: null
   automatable: partial
   blockers:
   - Referral sign-up may be invite/waitlist gated depending on region
@@ -545,22 +823,40 @@ recipes:
   steps:
   - action: goto
     target: https://www.korprotocol.io/
+    automatable: false
+    blocker: null
   - action: click
     target: Get your $KOR ID button (hero or footer)
+    automatable: false
+    blocker: null
   - action: wait
     target: KOR ID registration page to load on external subdomain
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Connect Wallet button on KOR ID page
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Sign-in authentication message (SIWE-style login signature)
+    automatable: false
+    blocker: null
   - action: fill
     target: KOR ID registration fields (handle/username, email if required)
+    automatable: false
+    blocker: null
   - action: click
     target: Submit / Claim KOR ID button
+    automatable: false
+    blocker: null
   - action: wait
     target: Registration confirmation and profile/dashboard view
+    automatable: false
+    blocker: null
   - action: click
     target: Any incentive/quest or points section if exposed after ID creation
+    automatable: false
+    blocker: null
   automatable: partial
   blockers:
   - No token or airdrop is live yet — page states "KOR is live. The token is coming.";
@@ -575,43 +871,61 @@ recipes:
   reconned_at: '2026-08-01T09:53:14Z'
   verdict: null
 - project: KOR Protocol
-  recipe_hash: sha256:a7aa588b661b3ed5efbf0dbbf483353098251a65869877d61dff2d6bdcd09d1e
+  recipe_hash: sha256:aa0d712f1ec0ba28d3550b3c1cdd90c4eb2943ab94130dd24f49903f2de1521f
   entry_url: https://korprotocol.io/
   chain: null
-  signature_kind: approve
+  signature_kind: message
   approve_unlimited: false
   capital_required_usd: 0.0
   steps:
   - action: goto
     target: https://korprotocol.io/
+    automatable: true
+    blocker: null
   - action: click
-    target: Get your $KOR ID
+    target: '''Get your $KOR ID'' CTA (also linked as ''KOR ID ↗'' in footer)'
+    automatable: true
+    blocker: null
   - action: wait
-    target: KOR ID registration/claim page to load
+    target: KOR ID app / claim page load
+    automatable: true
+    blocker: null
   - action: wallet_connect
-    target: Connect Wallet button on KOR ID app
+    target: Connect wallet modal on KOR ID app
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: Sign-in / ownership verification message
-  - action: wait
-    target: Whitelist eligibility check result
+    target: Sign-in / ownership verification message (SIWE-style, no gas)
+    automatable: true
+    blocker: null
   - action: click
-    target: Claim / Check eligibility button
+    target: Link X / Discord / email to the KOR ID profile
+    automatable: true
+    blocker: null
+  - action: wait
+    target: Whitelist eligibility check result for connected address
+    automatable: false
+    blocker: Address must already be on the whitelist; operator cannot make an ineligible
+      wallet eligible
+  - action: click
+    target: '''Claim'' button on the airdrop/rewards panel'
+    automatable: true
+    blocker: null
   - action: wallet_approve
-    target: Claim transaction confirmation in wallet
-  automatable: manual
+    target: Confirm claim transaction in wallet (gas required; chain not disclosed)
+    automatable: false
+    blocker: On-chain claim spends real gas on an undisclosed chain — needs human
+      funding/approval
+  automatable: partial
   blockers:
-  - Landing page only exposes a 'Get your $KOR ID' CTA; no airdrop claim UI is present
-    on korprotocol.io
-  - Claim/whitelist eligibility flow lives on an external KOR ID subdomain not resolvable
-    from this page text
-  - Chain and token contract not disclosed on the page; token is stated as 'coming'
-  - 'Whitelist-gated: eligibility likely determined by prior KOR/Korus/Beatport activity
-    and cannot be self-served'
-  - Wallet signature requirements unverifiable without loading the KOR ID app
-  reconned_at: '2026-08-01T10:15:00Z'
+  - Whitelist eligibility is address-gated — a non-whitelisted wallet cannot claim
+  - Claim contract/chain not disclosed on the landing page; actual claim UI is behind
+    the KOR ID app and may present a bot challenge
+  - Token/claim may not be live yet ('The token is coming') — timing gated
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: MoonPay
-  recipe_hash: sha256:4d246e81ad39d9b33afb13288fa8a668ac929dc42efff7f1f0ffbc21fb847593
+  recipe_hash: sha256:53ee1a2c027070f1e100adafb64a71faeaa32be94726acf480cf0e180b9f268b
   entry_url: https://www.moonpay.com/
   chain: null
   signature_kind: none
@@ -620,85 +934,163 @@ recipes:
   steps:
   - action: goto
     target: https://www.moonpay.com/
+    automatable: true
+    blocker: null
   - action: click
-    target: Get Started / Sign up
+    target: '''Accept'' on the cookie consent banner'
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Get Started'' / ''Sign Up'' in the top navigation'
+    automatable: true
+    blocker: null
   - action: fill
-    target: Email address and password on the signup form
+    target: Email address field in the signup form
+    automatable: true
+    blocker: null
   - action: wait
-    target: Email verification code delivery, then submit the code
+    target: Email verification code delivered to the logged-in email account
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Email verification code input
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Phone number field and SMS one-time code
+    automatable: false
+    blocker: SMS one-time code requires a human-held phone number
+  - action: click
+    target: Bot/CAPTCHA challenge on the signup or login step
+    automatable: false
+    blocker: CAPTCHA / bot-challenge wall
+  - action: fill
+    target: KYC identity verification form (name, address, DOB) and ID document upload
+    automatable: false
+    blocker: KYC document upload and liveness selfie
+  - action: goto
+    target: MoonPay account dashboard / rewards section containing PayBox
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Add PayBox'' / ''Create PayBox'' button'
+    automatable: true
+    blocker: null
   - action: wait
-    target: KYC identity verification (ID document + selfie) to reach a verified account
-      state
+    target: PayBox creation to complete and appear in the account
+    automatable: true
+    blocker: null
   - action: click
-    target: Account / Rewards section entry point for the PayBox feature
+    target: '''Connect X'' / ''Link X account'' button in the PayBox or rewards panel'
+    automatable: true
+    blocker: null
   - action: click
-    target: Add PayBox
+    target: '''Authorize app'' on the X OAuth consent screen'
+    automatable: true
+    blocker: null
   - action: wait
-    target: PayBox provisioning to complete
+    target: Redirect back to MoonPay confirming X account is linked
+    automatable: true
+    blocker: null
   - action: click
-    target: Connect X (Twitter) account
+    target: '''Claim'' button for the airdrop reward'
+    automatable: true
+    blocker: null
   - action: wait
-    target: X OAuth authorization on x.com, then return redirect to MoonPay
-  - action: click
-    target: Claim reward button in the rewards/airdrop panel
-  automatable: manual
+    target: Claim confirmation to appear in the account
+    automatable: true
+    blocker: null
+  automatable: partial
   blockers:
-  - The provided page is MoonPay's general marketing homepage; no airdrop, PayBox,
-    or reward-claim UI appears anywhere in the page text, so the actual entry URL
-    for the campaign is unverified
-  - Account signup requires email verification and almost certainly KYC (MoonPay is
-    a registered MSB with 35M 'verified accounts'), which cannot be automated
-  - X (Twitter) account linking is an OAuth flow on an external domain and typically
-    requires human login/2FA
-  - '''PayBox'' is not present on this page — its location, cost, and whether adding
-    it requires a funded card/bank or a minimum purchase is unknown'
-  - Anti-bot/fraud controls on a regulated fiat on-ramp make automated interaction
-    likely to trigger account restriction
-  - Claim step may require a payout wallet address and possibly an on-chain signature;
-    unverified from this page
-  reconned_at: '2026-08-01T10:15:00Z'
+  - MoonPay account signup requires KYC identity document upload for full verification
+  - Signup/login flow is protected by bot-challenge/CAPTCHA (hCaptcha) and SMS/phone
+    verification
+  - PayBox and airdrop claim page is not present on the public homepage — actual claim
+    URL unverified; may require an invite/referral code
+  - MoonPay is geo-restricted in several jurisdictions
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: Renaiss Protocol
-  recipe_hash: sha256:1111981d992cc37562b598a495fe5917c366f43006febbef9d5f7be95e36329a
+  recipe_hash: sha256:369dcba16de651d31569a8f4797a95d0784c78b6a6ba47a8abc120deaa05ca2a
   entry_url: https://www.renaiss.xyz/
-  chain: null
-  signature_kind: approve
+  chain: Solana
+  signature_kind: tx
   approve_unlimited: false
   capital_required_usd: 48.0
   steps:
   - action: goto
     target: https://www.renaiss.xyz/
+    automatable: true
+    blocker: null
   - action: click
-    target: Log in 버튼
+    target: '''Log in'' button in the top-right header'
+    automatable: true
+    blocker: null
   - action: wallet_connect
-    target: 로그인 모달 — 지갑 연결 또는 계정 생성
+    target: Wallet connect modal — select the installed wallet extension and approve
+      the connection
+    automatable: true
+    blocker: null
   - action: wallet_sign
-    target: 로그인 인증 서명 (SIWE 형식 메시지 서명 가능성)
+    target: Sign-in message (SIWS/SIWE auth signature) to establish the Renaiss session
+    automatable: true
+    blocker: null
   - action: click
-    target: 사이드바 Gacha 메뉴
+    target: '''Profile'' in the sidebar to open the account page and confirm the account
+      is created'
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Profile fields (username / email / referral code if prompted) and save
+    automatable: true
+    blocker: null
   - action: click
-    target: OMEGA 팩의 'Rip a Pack for $48' 버튼
+    target: Deposit / Add funds control to fund the account with USDC or SOL
+    automatable: false
+    blocker: Human must fund the wallet with real money; deposit path may hit an exchange
+      or KYC-gated ramp
   - action: wallet_approve
-    target: 결제 토큰 지출 승인 (팩 가격 한도)
+    target: Token approval / transfer authorization for USDC spend on the Renaiss
+      deposit or gacha contract
+    automatable: false
+    blocker: Human approval required before authorizing real-money token spend
+  - action: click
+    target: '''Gacha'' in the sidebar, then the OMEGA pack card'
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Rip a Pack for $48'' button on the OMEGA pack'
+    automatable: false
+    blocker: Irreversible $48 real-money purchase — human must approve the spend
   - action: wallet_sign
-    target: 팩 구매 트랜잭션 서명
+    target: Confirm the gacha purchase transaction in the wallet extension
+    automatable: false
+    blocker: Human must confirm a value-transferring transaction
   - action: wait
-    target: 온체인 개봉 결과 및 카드 공개 대기
+    target: Pack reveal / on-chain randomness settlement to complete
+    automatable: true
+    blocker: null
   - action: click
-    target: Marketplace 메뉴 — 리스팅/오퍼 등 추가 활동 수행
+    target: '''Marketplace'' in the sidebar, then ''Make an offer'' or ''Buy now''
+      on a card to register marketplace activity'
+    automatable: false
+    blocker: Placing a real bid or purchase commits funds — human must approve
   - action: click
-    target: Profile 메뉴 — 활동 기록 및 화이트리스트 관련 표시 확인
-  automatable: manual
+    target: '''Redemption'' / ''Leaderboard'' in the sidebar to check activity points
+      and whitelist standing once live'
+    automatable: true
+    blocker: null
+  automatable: partial
   blockers:
-  - 에어드랍이 공식 확정된 것이 아니라 '잠재 화이트리스트' 단계 — 페이지에 airdrop/points/quest 관련 UI나 자격 조건이 전혀
-    노출되지 않음
-  - 참여 기준이 공개되지 않아 어떤 행동(가챠 구매/마켓플레이스 거래/보유)이 적격 활동인지 확인 불가
-  - 실질 참여에는 유료 팩 구매가 필요 — 최저 OMEGA 팩 $48, Renacrypt $88, Eden $150 (Emerald는 Sold
-    Out)
-  - 로그인 방식이 지갑 연결인지 이메일/소셜 계정인지 페이지 텍스트에서 확정 불가 — 체인도 명시되지 않음
-  - 가챠는 확률형 상품이라 자동화 시 자금 손실 위험이 크고, 결제 단계에서 KYC/결제수단 등록이 요구될 가능성
-  - Lending/Borrowing/Leaderboard는 'Coming soon' 상태로 포인트 적립 경로가 아직 미개방
-  reconned_at: '2026-08-01T10:15:00Z'
+  - No official airdrop/points page found on the site — airdrop is speculative (potential
+    whitelist), so eligibility criteria are unpublished and unverifiable
+  - 'Real capital required: cheapest gacha pack is $48 and must be funded/spent to
+    generate meaningful activity'
+  - Funding the account may require an on/off-ramp or KYC-gated deposit path not visible
+    on the landing page
+  - Gacha purchase is an irreversible spend of real money — needs human approval on
+    amount
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
 - project: Alberich Token
   recipe_hash: sha256:1d7b8787cf5e4320d616af6da1bd95cd347ef4ebcd3d317f0cecfcd22ee1da4d
@@ -710,31 +1102,57 @@ recipes:
   steps:
   - action: goto
     target: https://www.alberichtoken.io/
+    automatable: false
+    blocker: null
   - action: click
     target: IDO Info nav link
+    automatable: false
+    blocker: null
   - action: click
     target: Kommunitas IDO link on the IDO Info section
+    automatable: false
+    blocker: null
   - action: wait
     target: Kommunitas project page to load
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Kommunitas launchpad wallet connect button
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Kommunitas login / account verification message
+    automatable: false
+    blocker: null
   - action: click
     target: IDO participation / buy allocation button for ALBRH
+    automatable: false
+    blocker: null
   - action: fill
     target: contribution amount input (stablecoin)
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: stablecoin spend approval for the Kommunitas IDO contract (set to exact
       contribution amount)
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: IDO contribution transaction
+    automatable: false
+    blocker: null
   - action: wait
     target: token launch / claim window opening 2026-08-11
+    automatable: false
+    blocker: null
   - action: click
     target: Claim ALBRH button on Kommunitas claim page
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: claim transaction
+    automatable: false
+    blocker: null
   automatable: manual
   blockers:
   - No official airdrop or task-based campaign found on the page; the only participation
@@ -759,45 +1177,85 @@ recipes:
   steps:
   - action: goto
     target: https://arcus.xyz/
+    automatable: false
+    blocker: null
   - action: click
     target: Join Perps Waitlist
+    automatable: false
+    blocker: null
   - action: goto
     target: https://waitlist.arcus.xyz/
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Connect Wallet button on waitlist.arcus.xyz
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Sign-in / ownership verification message for the connected wallet
+    automatable: false
+    blocker: null
   - action: click
     target: Connect X (Twitter) account
+    automatable: false
+    blocker: null
   - action: fill
     target: X OAuth login credentials and authorize the Arcus app
+    automatable: false
+    blocker: null
   - action: wait
     target: Waitlist profile to load with computed position/score
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Add additional wallets to aggregate prior trading history (optional)
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Ownership verification message for each additional wallet
+    automatable: false
+    blocker: null
   - action: click
     target: Referral link / copy referral code and share with validated traders (optional)
+    automatable: false
+    blocker: null
   - action: goto
     target: https://arcus.xyz/ — Trade Spot (Spot Beta, open to all eligible users)
+    automatable: false
+    blocker: null
   - action: wallet_connect
     target: Connect wallet to the Arcus spot trading app
+    automatable: false
+    blocker: null
   - action: click
     target: Deposit — fund account with cash or crypto
+    automatable: false
+    blocker: null
   - action: wallet_approve
     target: Token allowance for deposit/trading contract (bounded amount, not unlimited)
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Deposit transaction confirmation
+    automatable: false
+    blocker: null
   - action: wait
     target: Deposit to be credited to the Arcus account
+    automatable: false
+    blocker: null
   - action: fill
     target: Spot order form — select Stock Token market, side, quantity
+    automatable: false
+    blocker: null
   - action: wallet_sign
     target: Order placement signature / trade transaction
+    automatable: false
+    blocker: null
   - action: wait
     target: Spot volume to accrue and count toward Perps Waitlist position; cohort
       invite email/notification
+    automatable: false
+    blocker: null
   automatable: manual
   blockers:
   - Requires linking an X (Twitter) account via OAuth — human interaction needed
@@ -812,4 +1270,151 @@ recipes:
   - Exact waitlist wallet-signature/message flow is not disclosed on the landing page;
     token approvals for spot trading may be required at trade time
   reconned_at: '2026-08-01T10:15:00Z'
+  verdict: null
+- project: Backyard Finance
+  recipe_hash: sha256:d08c89781d162334ab0d9658bbcd9b20f3b9887c8d2cbfeca02a16e87a9f6ce8
+  entry_url: https://app.backyard.finance/
+  chain: Solana
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 50.0
+  steps:
+  - action: goto
+    target: https://app.backyard.finance/
+    automatable: true
+    blocker: null
+  - action: wallet_connect
+    target: '''Connect'' button in top nav — select the Solana wallet extension in
+      the persistent profile'
+    automatable: true
+    blocker: null
+  - action: wait
+    target: Vaults table finishes loading (APY/TVL populated) and wallet address shows
+      in header
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Add to strategy'' on a chosen vault row (e.g. Perena USD* 8.56% APY
+      or Kamino Elemental USDC Optimizer)'
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Deposit amount input in the strategy builder panel (stablecoin amount,
+      must be <= wallet balance)
+    automatable: false
+    blocker: Wallet must already hold the stablecoin; operator decides deposit size
+  - action: click
+    target: '''Create strategy'' / ''Deposit'' confirm button in the strategy panel'
+    automatable: true
+    blocker: null
+  - action: wallet_approve
+    target: Wallet extension popup — approve token delegation/deposit instruction
+      for the vault program
+    automatable: true
+    blocker: null
+  - action: wallet_sign
+    target: Wallet extension popup — sign and send the deposit transaction (requires
+      SOL for fees)
+    automatable: true
+    blocker: null
+  - action: wait
+    target: Transaction confirmation toast and position appearing under Dashboard
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Dashboard'' nav item to verify the active strategy and deposited balance'
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Rewards'' nav item to confirm airdrop points/rewards accrual is registered
+      for the wallet'
+    automatable: true
+    blocker: null
+  automatable: partial
+  blockers:
+  - Wallet must be pre-funded with stablecoins (USDC/USDS/USDG/PYUSD) plus SOL for
+    network fees — automation cannot source capital
+  - On-chain deposit risks real funds; principal is locked in the vault strategy until
+    manually withdrawn
+  reconned_at: '2026-08-02T03:16:38Z'
+  verdict: null
+- project: MetaMask
+  recipe_hash: sha256:9af29b62c4eb3398d71c97e2c3ba5d178c6a1e253be20fe94fda4fbe4e019330
+  entry_url: https://metamask.io/rewards
+  chain: 'Ethereum (multichain: Linea, Base, BNB, Solana via MetaMask)'
+  signature_kind: approve
+  approve_unlimited: false
+  capital_required_usd: 50.0
+  steps:
+  - action: goto
+    target: https://metamask.io/rewards
+    automatable: true
+    blocker: null
+  - action: click
+    target: Cookie banner → 'Accept All' (or 'Reject Non-Essential') to dismiss overlay
+    automatable: true
+    blocker: null
+  - action: wallet_connect
+    target: '''Connect wallet'' / ''Get started'' button → MetaMask extension in the
+      persistent profile'
+    automatable: true
+    blocker: null
+  - action: wallet_sign
+    target: MetaMask Rewards opt-in — sign the off-chain SIWE/terms message in the
+      extension popup
+    automatable: true
+    blocker: null
+  - action: click
+    target: '''Opt in'' / ''Join Rewards'' confirmation button on the rewards dashboard'
+    automatable: true
+    blocker: null
+  - action: fill
+    target: Referral code input (optional) — enter operator's referral/invite code
+    automatable: false
+    blocker: operator must supply a valid referral code
+  - action: click
+    target: Rewards dashboard → open a points-earning task (e.g. 'Swap')
+    automatable: true
+    blocker: null
+  - action: goto
+    target: https://metamask.io/swap (or in-extension Swap tab) and fund the wallet
+      with the source token + gas
+    automatable: false
+    blocker: human must fund wallet with real capital and gas
+  - action: fill
+    target: Swap form — select from/to tokens and enter amount
+    automatable: true
+    blocker: null
+  - action: wallet_approve
+    target: ERC-20 token spending approval for the MetaMask swap router (exact amount,
+      not unlimited)
+    automatable: false
+    blocker: human sign-off required before approving real token spend
+  - action: wallet_sign
+    target: Confirm the swap transaction in the MetaMask popup
+    automatable: false
+    blocker: human sign-off required for a value-moving transaction
+  - action: wait
+    target: Transaction confirmation and points indexing on the rewards dashboard
+      (minutes to hours)
+    automatable: true
+    blocker: null
+  - action: click
+    target: Rewards dashboard → refresh/claim points balance and check season tier
+    automatable: true
+    blocker: null
+  - action: click
+    target: Referral tab → copy referral link for point sharing
+    automatable: true
+    blocker: null
+  automatable: partial
+  blockers:
+  - Reward-earning tasks (swap, perps, card spend) require real on-chain capital and
+    gas — cannot be done with a zero-balance wallet
+  - Points accrue from actual trading volume, so unattended runs move real funds
+  - Some reward tiers/tasks are only available in the MetaMask mobile app or MetaMask
+    Card, which the browser profile cannot complete
+  - MetaMask Card / fiat on-ramp paths trigger KYC document upload and are geo-restricted
+  - Referral bonus needs a referral code the operator may not hold
+  reconned_at: '2026-08-02T03:16:38Z'
   verdict: null
